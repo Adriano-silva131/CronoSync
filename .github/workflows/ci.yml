@@ -1,0 +1,78 @@
+# Integração contínua: a cada push e pull request, roda os testes e compila os apps. Na branch main
+# (e quando disparado à mão), gera também o instalador .msi do Windows numa máquina Windows.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Só leitura do repositório: nenhum passo aqui precisa escrever (princípio do menor privilégio).
+permissions:
+  contents: read
+
+# Um push novo na mesma branch cancela a execução antiga, que já ficou desatualizada.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Testes e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      # Java para iniciar o Gradle (o próprio Gradle baixa os JDKs que o projeto pede).
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # Cache do Gradle e conferência do gradle-wrapper.jar (garante que é o oficial, não adulterado).
+      - uses: gradle/actions/setup-gradle@v6
+
+      # O Docker já vem na máquina: os testes do PostgreSQL (Testcontainers) rodam de verdade.
+      - name: Testes
+        run: ./gradlew :shared:jvmTest :server:test :desktopApp:test
+
+      - name: Build dos apps Android (testes e homologação)
+        run: ./gradlew :androidApp:assembleDebug :androidApp:assembleHomologacao
+
+      - name: Relatórios de teste (se algo falhar)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: relatorios-de-teste
+          path: '**/build/reports/tests/'
+          retention-days: 7
+
+  windows-msi:
+    name: Instalador Windows (.msi, homologação)
+    if: github.event_name != 'pull_request'
+    needs: test
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      # O jpackage só gera o instalador do sistema em que roda: por isso este job é numa máquina Windows.
+      - name: Gerar o .msi
+        run: ./gradlew :desktopApp:packageMsi -Pcronosync.environment=homologacao
+
+      # Fica para download na página da execução (aba Actions), por 14 dias.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: CronoSync-Homolog-windows
+          path: desktopApp/build/compose/binaries/main/msi/*.msi
+          if-no-files-found: error
+          retention-days: 14

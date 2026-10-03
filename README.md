@@ -1,5 +1,7 @@
 # CronoSync
 
+[![CI](https://github.com/Adriano-silva131/CronoSync/actions/workflows/ci.yml/badge.svg)](https://github.com/Adriano-silva131/CronoSync/actions/workflows/ci.yml)
+
 *[Leia em português](README.pt-BR.md)*
 
 A stopwatch, timer and Pomodoro that **several devices see and control at the same time**. Start the

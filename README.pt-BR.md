@@ -1,5 +1,7 @@
 # CronoSync
 
+[![CI](https://github.com/Adriano-silva131/CronoSync/actions/workflows/ci.yml/badge.svg)](https://github.com/Adriano-silva131/CronoSync/actions/workflows/ci.yml)
+
 *[Read in English](README.md)*
 
 Cronômetro, timer e Pomodoro que **vários aparelhos veem e controlam ao mesmo tempo**. Inicie o
