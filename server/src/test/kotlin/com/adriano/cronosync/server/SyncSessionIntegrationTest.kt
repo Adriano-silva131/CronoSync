@@ -17,6 +17,7 @@ import com.adriano.cronosync.timer.domain.TimerCommand
 import com.russhwolf.settings.MapSettings
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.server.testing.testApplication
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -28,6 +29,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -279,13 +281,29 @@ class SyncSessionIntegrationTest {
             session.join("localhost", assertNotNull(session.createRoom("localhost")))
             session.status.awaitFirst { it is ConnectionStatus.Connected }
 
+            // Grava TODAS as transições, em vez de tentar flagrar uma com first {}: com a reconexão
+            // imediata, o "Reconectando" pode durar microssegundos, e um observador atrasado (máquina
+            // ocupada) já encontraria "Conectado" — esperando para sempre por um estado que passou.
+            // Unconfined: o coletor roda na hora de cada mudança, sem esperar a vez numa thread.
+            // CopyOnWriteArrayList: o teste lê a lista enquanto os coletores (outra thread) escrevem.
+            val statuses = CopyOnWriteArrayList<ConnectionStatus>()
+            val commandsAvailable = CopyOnWriteArrayList<Boolean>()
+            scope.launch(Dispatchers.Unconfined) { session.status.collect { statuses += it } }
+            scope.launch(Dispatchers.Unconfined) { session.commandsAvailable.collect { commandsAvailable += it } }
+
             session.onNetworkChanged()
-            session.status.awaitFirst { it is ConnectionStatus.Reconnecting }
-            assertEquals(false, session.commandsAvailable.value) // botões desabilitados enquanto isso
 
             // Sem o "tente agora", a próxima tentativa esperaria 1 s; aqui volta bem antes.
-            withTimeout(SyncSession.backoffMillis(1) - 200) { session.status.first { it is ConnectionStatus.Connected } }
-            assertEquals(true, session.commandsAvailable.value)
+            withTimeout(SyncSession.backoffMillis(1) - 200) {
+                while (
+                    statuses.none { it is ConnectionStatus.Reconnecting } ||
+                    statuses.last() !is ConnectionStatus.Connected ||
+                    commandsAvailable.lastOrNull() != true
+                ) delay(10)
+            }
+            // Os botões ficaram desabilitados no meio do caminho e voltaram no fim. (A gravação pode
+            // começar com um "false" da conexão anterior: o status muda um instante antes dos botões.)
+            assertTrue(false in commandsAvailable.toList().dropWhile { !it }, "botões deveriam desabilitar: $commandsAvailable")
         } finally {
             scope.cancel()
         }
