@@ -66,7 +66,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
 
       # O jpackage só gera o instalador do sistema em que roda: por isso este job é numa máquina Windows.
+      # shell: bash — no PowerShell (o padrão no Windows), "-Pcronosync.environment=..." seria
+      # quebrado no ponto em dois argumentos, e o Gradle não entenderia.
       - name: Gerar o .msi
+        shell: bash
         run: ./gradlew :desktopApp:packageMsi -Pcronosync.environment=homologacao
 
       # Fica para download na página da execução (aba Actions), por 14 dias.
