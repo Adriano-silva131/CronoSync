@@ -1,0 +1,4 @@
+<resources>
+    <!-- Versão de homologação: nome diferente na tela inicial para não confundir com a de testes. -->
+    <string name="app_name">CronoSync Homolog</string>
+</resources>

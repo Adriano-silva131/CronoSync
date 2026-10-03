@@ -1,0 +1,31 @@
+# --- Gradle / Kotlin: tudo o que o build gera (em qualquer módulo) ---
+build/
+.gradle/
+.kotlin/
+
+# --- IDE (Android Studio / IntelliJ): só o estilo de código é compartilhado ---
+.idea/*
+!.idea/codeStyles/
+*.iml
+
+# --- Android ---
+local.properties
+/captures
+.externalNativeBuild
+.cxx
+*.apk
+*.aab
+# Chaves de assinatura de release: NUNCA no repositório.
+*.jks
+*.keystore
+
+# --- Segredos e configurações locais ---
+.env
+*.env
+!*.env.example
+# Endereço/usuário da VPS usados pelo deploy.
+/deploy/*/deploy.env
+
+# --- Sistema ---
+.DS_Store
+*.log

@@ -1,0 +1,8 @@
+# Fim de linha fixo por tipo de arquivo, igual em qualquer sistema que clonar o repositório.
+* text=auto eol=lf
+# Scripts do Windows precisam de CRLF para rodar no cmd.
+*.bat text eol=crlf
+# Binários: nunca converter.
+*.jar binary
+*.png binary
+*.ico binary

@@ -1,0 +1,52 @@
+# Servidor CronoSync + banco das salas, para desenvolvimento.
+#
+#   scripts/server.sh              compila o servidor e sobe tudo em segundo plano
+#   docker compose stop server     para só o servidor (o banco continua)
+#   docker compose down            para tudo — os dados ficam no volume "cronosync-pgdata"
+#   docker compose down -v         para tudo e APAGA todas as salas
+#
+# O scripts/local-test.sh sobe só o banco e roda o servidor fora do Docker (ele para o
+# servidor daqui se estiver ligado, para os dois não disputarem a porta 8080).
+# Banco na porta 5434 do computador, para não brigar com outros Postgres (5432 costuma ser o do sistema).
+# Usuário/senha só para desenvolvimento; em produção o servidor lê CRONOSYNC_DB_* do ambiente.
+name: cronosync
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cronosync
+      POSTGRES_USER: cronosync
+      POSTGRES_PASSWORD: cronosync
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - cronosync-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cronosync -d cronosync"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  server:
+    # A imagem copia server/build/install: compile antes (o scripts/server.sh já faz isso).
+    build: ./server
+    # Volta sozinho depois de reiniciar o computador, a não ser que você tenha parado com "stop".
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Dentro do Docker o banco é achado pelo nome do serviço, na porta interna dele (5432).
+      CRONOSYNC_DB_URL: jdbc:postgresql://postgres:5432/cronosync
+      CRONOSYNC_DB_USER: cronosync
+      CRONOSYNC_DB_PASSWORD: cronosync
+      # Modo de desenvolvimento: habilita a página de teste /dev/.
+      SERVER_OPTS: -Dio.ktor.development=true
+    ports:
+      # Aberta na rede (não só 127.0.0.1) para o celular conectar pelo Wi-Fi.
+      - "${CRONOSYNC_PORT:-8080}:8080"
+
+volumes:
+  cronosync-pgdata:

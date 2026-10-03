@@ -1,0 +1,3 @@
+# A imagem só precisa do servidor já compilado; o resto (código, caches do Gradle) fica de fora.
+*
+!build/install/server

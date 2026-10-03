@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CronoSync — teste de sincronização</title>
+<!--
+  Ferramenta de desenvolvimento: fala com o servidor usando o MESMO protocolo do app
+  (shared/.../sync/SyncProtocol.kt). Abra em várias abas ou aparelhos na mesma sala.
+  Servida só em modo de desenvolvimento (./gradlew :server:run).
+-->
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1b1d21; --muted: #5f6570; --border: #dde0e5;
+    --accent: #3558d6; --accent-text: #ffffff; --ok: #1f7a3d; --warn: #9a5b00; --danger: #b3261e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121417; --card: #1b1e23; --text: #e6e8eb; --muted: #9aa1ab; --border: #2c3038;
+      --accent: #8fa8ff; --accent-text: #0d1330; --ok: #6fd28f; --warn: #f0b35a; --danger: #ff8a80;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 system-ui, sans-serif; }
+  main { max-width: 880px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+  h1 { font-size: 20px; margin: 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  input { font: inherit; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+          background: var(--bg); color: var(--text); min-width: 0; }
+  button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border);
+           background: var(--card); color: var(--text); cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .big { font-size: 44px; font-variant-numeric: tabular-nums; font-weight: 600; margin: 8px 0; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .status-ok { color: var(--ok); } .status-warn { color: var(--warn); } .status-bad { color: var(--danger); }
+  .finished { color: var(--danger); }
+  ol { margin: 8px 0 0; padding-left: 20px; font-variant-numeric: tabular-nums; max-height: 140px; overflow: auto; }
+  pre { margin: 0; max-height: 220px; overflow: auto; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+  h2 { font-size: 16px; margin: 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>CronoSync — teste de sincronização</h1>
+
+  <section class="card row">
+    <button id="create" class="primary">Criar sala</button>
+    <span class="muted">ou</span>
+    <label for="room">código</label>
+    <input id="room" placeholder="ABCD-EFGH" size="12" autocomplete="off" style="text-transform: uppercase">
+    <button id="connect">Conectar</button>
+    <button id="disconnect" disabled>Desconectar</button>
+    <span id="conn" class="status-bad">desconectado</span>
+    <span id="offset" class="muted"></span>
+  </section>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Cronômetro <span id="sw-status" class="muted"></span></h2>
+      <div id="sw-elapsed" class="big">00:00.00</div>
+      <div class="row">
+        <button data-sw="start">Iniciar</button>
+        <button data-sw="pause">Pausar</button>
+        <button data-sw="lap">Volta</button>
+        <button data-sw="reset">Zerar</button>
+      </div>
+      <ol id="sw-laps" reversed></ol>
+    </section>
+
+    <section class="card">
+      <h2>Timer <span id="tm-status" class="muted"></span></h2>
+      <div id="tm-remaining" class="big">05:00</div>
+      <div class="row">
+        <input id="tm-seconds" type="number" min="0" value="10" style="width: 90px" aria-label="Duração em segundos">
+        <button id="tm-set">Definir (s)</button>
+      </div>
+      <div class="row" style="margin-top: 8px">
+        <button data-tm="start">Iniciar</button>
+        <button data-tm="pause">Pausar</button>
+        <button data-tm="reset">Zerar</button>
+      </div>
+      <label class="row muted" style="margin-top: 8px">
+        <input id="tm-sound" type="checkbox" checked> Som ao terminar
+      </label>
+    </section>
+    <section class="card">
+      <h2>Pomodoro <span id="pm-status" class="muted"></span></h2>
+      <div id="pm-phase" class="muted" style="font-size: 15px">Foco</div>
+      <div id="pm-remaining" class="big">25:00</div>
+      <div id="pm-info" class="muted"></div>
+      <div class="row" style="margin-top: 8px">
+        <button data-pm="start">Iniciar</button>
+        <button data-pm="pause">Pausar</button>
+        <button data-pm="skip">Pular</button>
+        <button data-pm="reset">Zerar</button>
+      </div>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Mensagens</h2>
+    <pre id="log"></pre>
+  </section>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  let ws = null;
+  let room = null;          // último RoomState recebido
+  let offsetMillis = 0;     // relógio do servidor - relógio deste navegador
+  let pingTimer = null;
+
+  // "Agora" no relógio do servidor, porque os instantes do estado (runningSinceMillis) estão nele.
+  const serverNow = () => Date.now() + offsetMillis;
+
+  function log(direction, text) {
+    const line = `${new Date().toLocaleTimeString()} ${direction} ${text}`;
+    const el = $('log');
+    el.textContent = (line + '\n' + el.textContent).split('\n').slice(0, 40).join('\n');
+  }
+
+  function send(message) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    const text = JSON.stringify(message);
+    ws.send(text);
+    if (message.type !== 'ping') log('→', text);
+  }
+
+  function connect() {
+    const roomId = $('room').value.trim();
+    ws = new WebSocket(`ws://${location.host}/rooms/${encodeURIComponent(roomId)}`);
+    setConn('conectando…', 'status-warn');
+
+    ws.onopen = () => {
+      setConn(`conectado na sala ${roomId.toUpperCase()}`, 'status-ok');
+      $('connect').disabled = true; $('create').disabled = true; $('disconnect').disabled = false;
+      ping();
+      pingTimer = setInterval(ping, 5000);
+    };
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      if (message.type === 'state') {
+        room = message.room;
+        log('←', event.data);
+      } else if (message.type === 'command_result') {
+        log('←', event.data);
+        if (!message.accepted) setConn(`toque descartado: outro aparelho mudou antes (versão ${message.version})`, 'status-warn');
+      } else if (message.type === 'pong') {
+        // Estimativa estilo NTP: supõe que ida e volta levaram o mesmo tempo.
+        const receivedAt = Date.now();
+        const roundTrip = receivedAt - message.clientTimeMillis;
+        offsetMillis = message.serverTimeMillis - (message.clientTimeMillis + receivedAt) / 2;
+        $('offset').textContent = `diferença de relógio: ${Math.round(offsetMillis)} ms · latência: ${roundTrip} ms`;
+      }
+    };
+    ws.onclose = (event) => {
+      clearInterval(pingTimer);
+      setConn(`desconectado${event.reason ? ' — ' + event.reason : ''}`, 'status-bad');
+      $('connect').disabled = false; $('create').disabled = false; $('disconnect').disabled = true;
+      ws = null;
+    };
+  }
+
+  const ping = () => send({ type: 'ping', clientTimeMillis: Date.now() });
+
+  function setConn(text, cls) { const el = $('conn'); el.textContent = text; el.className = cls; }
+
+  // Mesmas regras de shared/.../Stopwatch.kt e Timer.kt.
+  const segment = (since, now) => since == null ? 0 : Math.max(0, now - since);
+  const pad = (n) => String(n).padStart(2, '0');
+
+  function formatElapsed(ms) {
+    const total = Math.floor(ms / 1000), h = Math.floor(total / 3600);
+    const base = `${pad(Math.floor(total / 60) % 60)}:${pad(total % 60)}.${pad(Math.floor(ms / 10) % 100)}`;
+    return h > 0 ? `${h}:${base}` : base;
+  }
+  function formatCountdown(ms) {
+    const total = Math.floor((Math.max(0, ms) + 999) / 1000), h = Math.floor(total / 3600);
+    const base = `${pad(Math.floor(total / 60) % 60)}:${pad(total % 60)}`;
+    return h > 0 ? `${h}:${base}` : base;
+  }
+
+  // ---- Pomodoro: mesmas regras de shared/.../pomodoro/domain/Pomodoro.kt (fase calculada pelo relógio).
+  const PHASE_NAMES = { Focus: 'Foco', ShortBreak: 'Pausa curta', LongBreak: 'Pausa longa' };
+  function pomodoroPhase(pm, now) {
+    const st = pm.settings, n = st.focusesBeforeLongBreak;
+    const elapsed = pm.accumulatedMillis + segment(pm.runningSinceMillis, now);
+    const round = n * st.focusMillis + (n - 1) * st.shortBreakMillis + st.longBreakMillis;
+    let start = Math.floor(elapsed / round) * round, focuses = Math.floor(elapsed / round) * n;
+    for (let pos = 0; pos < 2 * n; pos++) {
+      const kind = pos % 2 === 0 ? 'Focus' : (pos === 2 * n - 1 ? 'LongBreak' : 'ShortBreak');
+      const len = kind === 'Focus' ? st.focusMillis : kind === 'ShortBreak' ? st.shortBreakMillis : st.longBreakMillis;
+      if (elapsed < start + len) return { kind, start, end: start + len, elapsed, focuses };
+      if (kind === 'Focus') focuses++;
+      start += len;
+    }
+  }
+
+  function render() {
+    if (room && room.pomodoro) {
+      const pm = room.pomodoro, phase = pomodoroPhase(pm, serverNow());
+      $('pm-phase').textContent = PHASE_NAMES[phase.kind];
+      $('pm-remaining').textContent = formatCountdown(phase.end - phase.elapsed);
+      $('pm-status').textContent = `· ${pm.status}`;
+      $('pm-info').textContent = `focos concluídos: ${phase.focuses}`;
+    }
+    if (room) {
+      const now = serverNow();
+      const sw = room.stopwatch;
+      $('sw-elapsed').textContent = formatElapsed(sw.accumulatedMillis + segment(sw.runningSinceMillis, now));
+      $('sw-status').textContent = `· ${sw.status}`;
+      $('sw-laps').innerHTML = sw.laps.slice().reverse()
+        .map((lap) => `<li>${formatElapsed(lap.lapMillis)} <span class="muted">(${formatElapsed(lap.totalMillis)})</span></li>`).join('');
+
+      const tm = room.timer;
+      const elapsed = Math.min(tm.durationMillis, tm.accumulatedMillis + segment(tm.runningSinceMillis, now));
+      const remaining = tm.durationMillis - elapsed;
+      const status = tm.status === 'Running' && remaining === 0 ? 'Finished' : tm.status;
+      $('tm-remaining').textContent = formatCountdown(remaining);
+      $('tm-remaining').classList.toggle('finished', status === 'Finished');
+      $('tm-status').textContent = `· ${status}`;
+    }
+    requestAnimationFrame(render);
+  }
+
+  // O servidor gera o código (sem colisões) e devolve {"roomId":"ABCD-EFGH"}.
+  async function createRoom() {
+    try {
+      const response = await fetch('/rooms', { method: 'POST' });
+      const { roomId } = await response.json();
+      log('←', `sala criada: ${roomId}`);
+      $('room').value = roomId;
+      connect();
+    } catch (error) {
+      setConn(`não foi possível criar a sala: ${error}`, 'status-bad');
+    }
+  }
+
+  // ---- Aviso de fim do timer: suave (título da aba + notificação + "plim-plom" curto), sem piscar. ----
+  const baseTitle = document.title;
+  let lastTimerStatus = null;
+  let audio = null;
+
+  try { $('tm-sound').checked = localStorage.getItem('cronosync.sound') !== 'off'; } catch (_) {}
+  $('tm-sound').onchange = () => {
+    try { localStorage.setItem('cronosync.sound', $('tm-sound').checked ? 'on' : 'off'); } catch (_) {}
+  };
+
+  // Navegadores só liberam som e notificação depois de um clique do usuário: preparamos no "Iniciar".
+  function prepareAlerts() {
+    if (!audio) audio = new AudioContext();
+    audio.resume();
+    if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+  }
+
+  function chime() {
+    if (!audio || !$('tm-sound').checked) return;
+    const tone = (frequency, start, length) => {
+      const osc = audio.createOscillator(), gain = audio.createGain();
+      osc.frequency.value = frequency;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.3, start + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + length);
+      osc.connect(gain).connect(audio.destination);
+      osc.start(start); osc.stop(start + length);
+    };
+    const now = audio.currentTime;
+    for (let i = 0; i < 3; i++) {
+      tone(880, now + i * 0.88, 0.18);
+      tone(1318.5, now + i * 0.88 + 0.22, 0.28);
+    }
+  }
+
+  function timerStatus(now) {
+    const tm = room.timer;
+    const elapsed = Math.min(tm.durationMillis, tm.accumulatedMillis + segment(tm.runningSinceMillis, now));
+    return tm.status === 'Running' && tm.durationMillis - elapsed === 0 ? 'Finished' : tm.status;
+  }
+
+  // Temporizador próprio (não o desenho da tela): com a aba em segundo plano o navegador pausa a
+  // animação, mas este continua rodando (no máximo 1x por segundo) e o aviso ainda acontece.
+  setInterval(() => {
+    if (!room) return;
+    const status = timerStatus(serverNow());
+    // Só avisa na TRANSIÇÃO rodando → terminado; abrir a página com o timer já vencido não avisa.
+    if (lastTimerStatus === 'Running' && status === 'Finished') {
+      document.title = '⏰ Tempo esgotado — CronoSync';
+      chime();
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Tempo esgotado!', { body: `O timer de ${formatCountdown(room.timer.durationMillis)} chegou ao fim.` });
+      }
+    }
+    // Pomodoro: avisa cada troca de fase AUTOMÁTICA (mudou de fase sem mudar de versão = não foi um toque).
+    if (room.pomodoro) {
+      const pm = room.pomodoro, phase = pomodoroPhase(pm, serverNow());
+      if (pm.status === 'Running' && lastPomodoro && lastPomodoro.version === room.version && lastPomodoro.start !== phase.start) {
+        document.title = phase.kind === 'Focus' ? '⏰ Hora de focar — CronoSync' : '⏰ Hora da pausa — CronoSync';
+        chime();
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(phase.kind === 'Focus' ? 'Hora de focar!' : 'Hora da pausa!', { body: `${PHASE_NAMES[phase.kind]} já começou.` });
+        }
+      }
+      lastPomodoro = { version: room.version, start: phase.start };
+    }
+    if (status !== 'Finished' && !document.title.includes('Hora d')) document.title = baseTitle;
+    lastTimerStatus = status;
+  }, 250);
+  let lastPomodoro = null;
+  // Voltar à aba (ou clicar) limpa o aviso do título.
+  window.addEventListener('focus', () => { if (document.title.includes('Hora d')) document.title = baseTitle; });
+
+  $('create').onclick = createRoom;
+  $('connect').onclick = connect;
+  $('disconnect').onclick = () => ws && ws.close();
+  // Protocolo: cada comando leva id, instante do toque (relógio do servidor) e a versão vista.
+  // Se outro aparelho mudou a sala antes, o servidor responde command_result com accepted=false.
+  let commandSeq = 0;
+  function sendCommand(command) {
+    send({
+      type: 'command',
+      id: `web-${Date.now().toString(36)}-${commandSeq++}`,
+      command,
+      atMillis: Math.round(serverNow()),
+      expectedVersion: room ? room.version : 0,
+    });
+  }
+
+  document.querySelectorAll('[data-sw]').forEach((b) =>
+    b.onclick = () => sendCommand({ type: 'stopwatch', command: { type: b.dataset.sw } }));
+  document.querySelectorAll('[data-tm]').forEach((b) =>
+    b.onclick = () => {
+      if (b.dataset.tm === 'start') prepareAlerts();
+      sendCommand({ type: 'timer', command: { type: b.dataset.tm } });
+    });
+  document.querySelectorAll('[data-pm]').forEach((b) =>
+    b.onclick = () => {
+      if (b.dataset.pm === 'start') prepareAlerts();
+      sendCommand({ type: 'pomodoro', command: { type: b.dataset.pm } });
+    });
+  $('tm-set').onclick = () =>
+    sendCommand({ type: 'timer', command: { type: 'set_duration', durationMillis: Number($('tm-seconds').value) * 1000 } });
+
+  requestAnimationFrame(render);
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<resources>
+    <!-- Textos usados só pelo código Android (notificações, permissões, alarme).
+         Os das telas compartilhadas estão em sharedUi/src/commonMain/composeResources. -->
+    <string name="app_name">CronoSync</string>
+    <string name="action_pause">Pausar</string>
+    <string name="action_reset">Zerar</string>
+    <string name="action_stop">Parar</string>
+    <string name="channel_timer_running">Contagens em andamento</string>
+    <string name="channel_timer_alarm">Alarmes (timer e Pomodoro)</string>
+    <string name="timer_notification_running">Timer em andamento</string>
+    <string name="timer_notification_finished">Tempo esgotado!</string>
+    <string name="timer_notification_finished_text">Toque em Parar para silenciar o alarme</string>
+    <string name="alarm_title">Tempo esgotado!</string>
+    <string name="alarm_banner_notifications">Sem permissão de notificações, o alarme não vai tocar.</string>
+    <string name="alarm_banner_full_screen">Permita o alarme em tela cheia para vê-lo com a tela bloqueada.</string>
+    <string name="alarm_banner_xiaomi_lock_screen">Na Xiaomi, ative \"Mostrar na tela de bloqueio\" para o alarme aparecer com o celular bloqueado.</string>
+    <string name="action_allow">Permitir</string>
+    <string name="action_skip">Pular</string>
+    <string name="pomodoro_phase_focus">Foco</string>
+    <string name="pomodoro_phase_short_break">Pausa curta</string>
+    <string name="pomodoro_phase_long_break">Pausa longa</string>
+    <string name="pomodoro_running_title">Pomodoro · %1$s</string>
+    <string name="pomodoro_ringing_focus">Hora de focar!</string>
+    <string name="pomodoro_ringing_break">Hora da pausa!</string>
+    <string name="pomodoro_ringing_text">%1$s de %2$d min já começou.</string>
+</resources>

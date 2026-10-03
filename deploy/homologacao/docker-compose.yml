@@ -1,0 +1,65 @@
+# Servidor CronoSync de HOMOLOGAÇÃO (na VPS), atrás do nginx que atende homologacao.focussync.com.br.
+#
+# Não é usado direto: o deploy/homologacao/deploy.sh (rodado no seu computador) compila o servidor,
+# envia este arquivo + o servidor compilado para a VPS e sobe tudo lá.
+#
+# Diferenças para o docker-compose.yml de desenvolvimento (na raiz do projeto):
+# - senha do banco de verdade, num arquivo .env que só existe na VPS (o deploy.sh cria na 1ª vez);
+# - nada aberto para a internet: o banco não tem porta nenhuma e o servidor só escuta em
+#   127.0.0.1 — quem fala com a internet é o nginx (HTTPS), que repassa para cá;
+# - CRONOSYNC_BEHIND_PROXY: lê o IP real dos aparelhos do cabeçalho que o nginx acrescenta;
+# - sem modo de desenvolvimento: a página de teste /dev/ não existe aqui.
+name: cronosync-homologacao
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cronosync
+      POSTGRES_USER: cronosync
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cronosync -d cronosync"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    logging: &logging
+      # Sem limite, o log do Docker cresce até encher o disco da VPS.
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  server:
+    # A imagem copia server/build/install (enviado pelo deploy.sh) — não compila nada na VPS.
+    build: ./server
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      CRONOSYNC_DB_URL: jdbc:postgresql://postgres:5432/cronosync
+      CRONOSYNC_DB_USER: cronosync
+      CRONOSYNC_DB_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      CRONOSYNC_BEHIND_PROXY: "true"
+      # A VPS é compartilhada com outros sistemas: memória do Java limitada (sobra para salas).
+      JAVA_OPTS: "-Xmx256m"
+    ports:
+      # Só 127.0.0.1: acessível pelo nginx da própria VPS, nunca direto pela internet.
+      # 8095 porque a 8080 da VPS já é de outro sistema (o nginx repassa para esta).
+      - "127.0.0.1:8095:8080"
+    # "Saudável" só quando o servidor responde de fato (a JVM leva alguns segundos para subir). O
+    # deploy.sh espera por isso (--wait), e não só pelo contêiner ter iniciado.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    logging: *logging
+
+volumes:
+  pgdata:
