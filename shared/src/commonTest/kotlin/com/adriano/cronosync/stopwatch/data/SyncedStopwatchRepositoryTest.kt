@@ -4,9 +4,9 @@ import com.adriano.cronosync.core.FakeClock
 import com.adriano.cronosync.stopwatch.domain.Stopwatch
 import com.adriano.cronosync.stopwatch.domain.StopwatchCommand
 import com.adriano.cronosync.stopwatch.domain.StopwatchStatus
-import com.adriano.cronosync.sync.RoomCommand
-import com.adriano.cronosync.sync.FakeRoomConnection
-import com.adriano.cronosync.sync.RoomState
+import com.adriano.cronosync.sync.data.FakeRoomConnection
+import com.adriano.cronosync.sync.domain.RoomCommand
+import com.adriano.cronosync.sync.domain.RoomState
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -37,7 +37,6 @@ class SyncedStopwatchRepositoryTest {
         repository.send(StopwatchCommand.Start)
 
         assertEquals(listOf<RoomCommand>(RoomCommand.StopwatchCmd(StopwatchCommand.Start)), connection.sent)
-        // Nada muda até o servidor responder.
         assertEquals(StopwatchStatus.Idle, repository.stopwatch.value.status)
     }
 
@@ -60,6 +59,6 @@ class SyncedStopwatchRepositoryTest {
 
         assertEquals(false, repository.acceptsCommands.value)
         assertEquals(false, repository.send(StopwatchCommand.Start))
-        assertEquals(StopwatchStatus.Idle, repository.stopwatch.value.status) // nada aplicado localmente
+        assertEquals(StopwatchStatus.Idle, repository.stopwatch.value.status)
     }
 }

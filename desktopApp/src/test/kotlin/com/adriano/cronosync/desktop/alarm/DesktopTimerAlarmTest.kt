@@ -1,7 +1,7 @@
 package com.adriano.cronosync.desktop.alarm
 
+import com.adriano.cronosync.alarm.data.AlarmPreferencesRepository
 import com.adriano.cronosync.core.AlignedClock
-import com.adriano.cronosync.timer.data.AlarmPreferencesRepository
 import com.adriano.cronosync.timer.data.TimerRepository
 import com.adriano.cronosync.timer.domain.Timer
 import com.adriano.cronosync.timer.domain.TimerCommand
@@ -54,7 +54,6 @@ class DesktopTimerAlarmTest {
 
     @Test
     fun finishNoticedAfterSuspensionOnlyNotifiesWithTheTime() {
-        // Terminou às 14:30 UTC, percebido 20 min depois.
         val finishedAt = java.time.Instant.parse("2026-09-30T14:30:00Z").toEpochMilli()
 
         alarm.alert(TimerFinished(finishedAtMillis = finishedAt, lateByMillis = 20 * 60_000L))
@@ -62,6 +61,6 @@ class DesktopTimerAlarmTest {
         val (title, message) = notifications.single()
         assertEquals("O timer terminou", title)
         assertTrue("14:30" in message, message)
-        assertEquals(0, chimes) // sem som de repente
+        assertEquals(0, chimes)
     }
 }

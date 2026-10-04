@@ -2,10 +2,6 @@ package com.adriano.cronosync.stopwatch.presentation
 
 import com.adriano.cronosync.core.pad2
 
-/**
- * Formata milissegundos como `MM:SS.cc` (centésimos), ou `H:MM:SS.cc` a partir de uma hora.
- * Fica no código compartilhado para que Android, desktop e web exibam o tempo exatamente igual.
- */
 fun formatElapsed(millis: Long): String {
     val safeMillis = millis.coerceAtLeast(0L)
     val centis = (safeMillis / 10) % 100

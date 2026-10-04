@@ -44,7 +44,7 @@ class StopwatchTest {
         val resumed = Stopwatch()
             .handle(Start, nowMillis = 0L)
             .handle(Pause, nowMillis = 2_000L)
-            .handle(Start, nowMillis = 10_000L) // 8s parado não contam
+            .handle(Start, nowMillis = 10_000L)
 
         assertEquals(3_000L, resumed.elapsedMillis(nowMillis = 11_000L))
     }
@@ -53,7 +53,6 @@ class StopwatchTest {
     fun startWhileRunningIsIgnored() {
         val running = Stopwatch().handle(Start, nowMillis = 1_000L)
 
-        // Ex.: dois dispositivos apertam "iniciar" quase juntos — o segundo não reinicia a contagem.
         assertSame(running, running.handle(Start, nowMillis = 5_000L))
     }
 
@@ -118,7 +117,6 @@ class StopwatchTest {
         repeat(Stopwatch.MAX_LAPS) { stopwatch = stopwatch.handle(RecordLap, nowMillis = (it + 1) * 1_000L) }
         assertTrue(stopwatch.lapLimitReached)
 
-        // A volta 201 é ignorada: o estado nem muda (e o servidor nem grava).
         assertSame(stopwatch, stopwatch.handle(RecordLap, nowMillis = 999_000L))
         assertEquals(Stopwatch.MAX_LAPS, stopwatch.laps.size)
     }
@@ -127,7 +125,6 @@ class StopwatchTest {
     fun elapsedIsNeverNegativeWhenClockIsBehindStart() {
         val running = Stopwatch().handle(Start, nowMillis = 10_000L)
 
-        // Relógio deste dispositivo um pouco atrás de quem iniciou o cronômetro.
         assertEquals(0L, running.elapsedMillis(nowMillis = 9_900L))
     }
 }

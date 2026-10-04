@@ -1,8 +1,8 @@
 package com.adriano.cronosync.timer.data
 
 import com.adriano.cronosync.core.Clock
-import com.adriano.cronosync.sync.RoomCommand
-import com.adriano.cronosync.sync.RoomConnection
+import com.adriano.cronosync.sync.data.RoomConnection
+import com.adriano.cronosync.sync.domain.RoomCommand
 import com.adriano.cronosync.timer.domain.Timer
 import com.adriano.cronosync.timer.domain.TimerCommand
 import com.adriano.cronosync.timer.domain.handle
@@ -13,13 +13,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 
-/**
- * Timer com ou sem sala (mesma lógica do [com.adriano.cronosync.stopwatch.data.SyncedStopwatchRepository]).
- *
- * Diferença: o timer é persistido — tanto o estado aplicado localmente quanto o recebido do
- * servidor. Se o Android matar o app no meio de uma sala, ele renasce com o último estado conhecido
- * (e o alarme continua valendo) até a conexão voltar.
- */
 class SyncedTimerRepository(
     private val clock: Clock,
     private val storage: TimerStorage,

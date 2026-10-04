@@ -10,12 +10,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.adriano.cronosync.timer.domain.TimerStatus
 import com.adriano.cronosync.timer.presentation.TimerAction
 import com.adriano.cronosync.timer.presentation.TimerViewModel
+import com.adriano.cronosync.ui.alarm.AlarmOptionsRoute
+import com.adriano.cronosync.ui.alarm.AlarmPermissionBanner
+import com.adriano.cronosync.ui.alarm.rememberMissingAlarmPermission
+import com.adriano.cronosync.ui.alarm.rememberNotificationPermissionRequest
 import org.koin.compose.viewmodel.koinViewModel
 
-/**
- * Rota do timer no Android: a mesma tela compartilhada ([TimerScreen]), mais o que só existe
- * aqui — pedir permissão de notificação ao iniciar e avisar se falta alguma permissão de alarme.
- */
 @Composable
 fun AndroidTimerRoute(
     modifier: Modifier = Modifier,
@@ -26,7 +26,6 @@ fun AndroidTimerRoute(
     val missingPermission = rememberMissingAlarmPermission()
 
     Column(modifier = modifier) {
-        // Só avisa depois que o usuário iniciou um timer — antes disso o aviso não faz sentido para ele.
         if (state.status != TimerStatus.Idle && missingPermission != null) {
             AlarmPermissionBanner(missing = missingPermission, modifier = Modifier.padding(16.dp))
         }

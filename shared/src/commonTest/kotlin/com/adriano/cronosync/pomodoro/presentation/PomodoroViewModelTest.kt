@@ -71,7 +71,7 @@ class PomodoroViewModelTest {
         repository.pomodoro.value = Pomodoro(settings = PomodoroSettings(focusMillis = 1 * MINUTE))
         val viewModel = createViewModel()
 
-        viewModel.onAction(PomodoroAction.StepSetting(PomodoroSettingField.Focus, -1)) // já no mínimo
+        viewModel.onAction(PomodoroAction.StepSetting(PomodoroSettingField.Focus, -1))
         viewModel.onAction(PomodoroAction.StepSetting(PomodoroSettingField.ShortBreak, +1))
         runCurrent()
 

@@ -41,10 +41,6 @@ import com.adriano.cronosync.ui.sync.OfflineControlsHint
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-/**
- * "Route": liga o ViewModel à tela. É o único Composable que conhece o ViewModel.
- * collectAsStateWithLifecycle para de coletar quando o app vai para background (economiza bateria).
- */
 @Composable
 fun StopwatchRoute(
     modifier: Modifier = Modifier,
@@ -54,7 +50,6 @@ fun StopwatchRoute(
     StopwatchScreen(state = state, onAction = viewModel::onAction, modifier = modifier)
 }
 
-/** Tela "burra" (stateless): recebe o estado e devolve ações. Fácil de pré-visualizar e testar. */
 @Composable
 fun StopwatchScreen(
     state: StopwatchUiState,
@@ -70,7 +65,6 @@ fun StopwatchScreen(
         Spacer(Modifier.height(64.dp))
         Text(
             text = state.elapsedText,
-            // "tnum" = dígitos de largura fixa: o texto não "treme" enquanto os números mudam.
             style = MaterialTheme.typography.displayLarge.merge(TextStyle(fontFeatureSettings = "tnum")),
         )
         Spacer(Modifier.height(48.dp))
@@ -103,7 +97,6 @@ private fun StopwatchControls(
     onAction: (StopwatchAction) -> Unit,
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        // Botão secundário: Volta enquanto corre, Zerar quando pausado.
         when (status) {
             StopwatchStatus.Paused -> OutlinedButton(onClick = { onAction(StopwatchAction.Reset) }, enabled = enabled) {
                 Text(stringResource(Res.string.action_reset))
@@ -116,7 +109,6 @@ private fun StopwatchControls(
             }
         }
 
-        // Botão principal: Iniciar / Pausar / Continuar.
         when (status) {
             StopwatchStatus.Running -> Button(onClick = { onAction(StopwatchAction.Pause) }, enabled = enabled) {
                 Text(stringResource(Res.string.action_pause))
@@ -132,7 +124,6 @@ private fun StopwatchControls(
 @Composable
 private fun LapList(laps: List<LapUiModel>) {
     LazyColumn(modifier = Modifier.fillMaxWidth()) {
-        // key estável: o Compose sabe qual item é qual quando uma volta nova entra no topo.
         items(laps, key = { it.number }) { lap ->
             Row(
                 modifier = Modifier

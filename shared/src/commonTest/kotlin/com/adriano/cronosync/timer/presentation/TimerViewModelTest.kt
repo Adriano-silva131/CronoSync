@@ -64,7 +64,7 @@ class TimerViewModelTest {
 
     @Test
     fun stepDurationSendsNewDurationToRepository() = runTest {
-        repository.timer.value = Timer(durationMillis = 90_000L) // 01:30
+        repository.timer.value = Timer(durationMillis = 90_000L)
         val viewModel = createViewModel()
 
         viewModel.onAction(TimerAction.StepDuration(DurationField.Minutes, +1))
@@ -79,7 +79,7 @@ class TimerViewModelTest {
         val viewModel = createViewModel()
         backgroundScope.launch { viewModel.uiState.collect {} }
 
-        advanceTimeBy(UI_TICK_MILLIS * 125) // 2.000 ms
+        advanceTimeBy(UI_TICK_MILLIS * 125)
         runCurrent()
 
         val state = viewModel.uiState.value
@@ -103,7 +103,6 @@ class TimerViewModelTest {
         assertEquals("00:00", finished.remainingText)
         assertEquals(0f, finished.remainingFraction)
 
-        // Depois de acabar, nenhum tick novo: a lista de estados não cresce mais.
         val emittedSoFar = states.size
         advanceTimeBy(60_000L)
         assertEquals(emittedSoFar, states.size)
@@ -117,9 +116,8 @@ class TimerViewModelTest {
         viewModel.uiState.test {
             assertEquals(TimerStatus.Running, awaitItem().status)
 
-            // Outro dispositivo pausou com 6 s restantes.
             repository.timer.value = Timer(status = TimerStatus.Paused, durationMillis = 10_000L, accumulatedMillis = 4_000L)
-            runCurrent() // deixa o ViewModel processar a mudança antes de conferirmos
+            runCurrent()
 
             val paused = expectMostRecentItem()
             assertEquals(TimerStatus.Paused, paused.status)

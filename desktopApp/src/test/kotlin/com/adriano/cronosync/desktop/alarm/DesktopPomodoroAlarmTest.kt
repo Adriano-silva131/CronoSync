@@ -1,12 +1,12 @@
 package com.adriano.cronosync.desktop.alarm
 
+import com.adriano.cronosync.alarm.data.AlarmPreferencesRepository
+import com.adriano.cronosync.pomodoro.data.PomodoroRepository
 import com.adriano.cronosync.pomodoro.domain.Pomodoro
 import com.adriano.cronosync.pomodoro.domain.PomodoroCommand
-import com.adriano.cronosync.pomodoro.data.PomodoroRepository
 import com.adriano.cronosync.pomodoro.domain.PomodoroPhaseKind
 import com.adriano.cronosync.pomodoro.domain.PomodoroSettings.Companion.MINUTE
 import com.adriano.cronosync.pomodoro.domain.PomodoroTransition
-import com.adriano.cronosync.timer.data.AlarmPreferencesRepository
 import com.russhwolf.settings.MapSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.test.Test

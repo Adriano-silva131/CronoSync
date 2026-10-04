@@ -4,24 +4,12 @@ import com.adriano.cronosync.timer.domain.Timer
 import com.adriano.cronosync.timer.domain.TimerStatus
 import com.russhwolf.settings.Settings
 
-/**
- * Persiste o timer para ele sobreviver ao Android matar o processo do app.
- *
- * Sem isso: o timer está rodando, o app vai para segundo plano, o sistema mata o processo para
- * liberar memória, o alarme dispara, o app renasce… com o timer zerado em memória.
- *
- * A API é síncrona de propósito: o repositório precisa do estado salvo já na criação, antes de
- * qualquer um observar — senão alguém veria um "timer zerado" falso por alguns milissegundos.
- */
+// Síncrona de propósito: o repositório precisa do estado salvo já na criação, antes de alguém observar.
 interface TimerStorage {
     fun load(): Timer?
     fun save(timer: Timer)
 }
 
-/**
- * Implementação com multiplatform-settings: uma interface chave-valor comum que, por baixo, usa
- * SharedPreferences no Android, java.util.prefs no desktop e localStorage na web.
- */
 class SettingsTimerStorage(private val settings: Settings) : TimerStorage {
 
     override fun load(): Timer? {

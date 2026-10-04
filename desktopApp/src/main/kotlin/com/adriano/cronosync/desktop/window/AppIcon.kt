@@ -11,11 +11,6 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.unit.dp
 
-/**
- * Ícone do app (janela e bandeja): o desenho "timer" do Material Symbols, branco, sobre um círculo
- * azul. O fundo colorido deixa o ícone visível tanto em barras claras quanto escuras.
- * Feito em código (vetor), sem arquivo de imagem.
- */
 @Composable
 fun rememberAppIcon(): Painter = rememberVectorPainter(remember { appIconVector() })
 
@@ -26,14 +21,12 @@ internal fun appIconVector(): ImageVector = ImageVector.Builder(
     viewportWidth = 24f,
     viewportHeight = 24f,
 ).apply {
-    // Círculo de fundo.
     path(fill = SolidColor(Color(0xFF3558D6))) {
         moveTo(12f, 0f)
         arcToRelative(12f, 12f, 0f, true, true, 0f, 24f)
         arcToRelative(12f, 12f, 0f, true, true, 0f, -24f)
         close()
     }
-    // Desenho "timer" do Material, reduzido para caber dentro do círculo.
     addPath(
         pathData = addPathNodes(
             "M14.25,4.5h-4.5v1.5h4.5v-1.5zM11.25,14.25h1.5v-4.5h-1.5v4.5zM17.27,9.29l1.07,-1.07c-0.32,-0.38 " +

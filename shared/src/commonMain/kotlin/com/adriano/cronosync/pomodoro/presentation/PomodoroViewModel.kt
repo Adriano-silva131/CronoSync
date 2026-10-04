@@ -27,10 +27,6 @@ class PomodoroViewModel(
     private val clock: Clock,
 ) : ViewModel() {
 
-    /**
-     * Mesma estrutura dos outros modos: estado do repositório + "agora", recalculado a cada tick.
-     * As trocas de fase aparecem sozinhas, porque a fase é calculada a partir do relógio.
-     */
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<PomodoroUiState> = repository.pomodoro
         .flatMapLatest { pomodoro -> ticks(pomodoro).map { now -> pomodoro.toUiState(now) } }
@@ -55,7 +51,6 @@ class PomodoroViewModel(
         viewModelScope.launch { repository.send(command) }
     }
 
-    /** Rodando: atualiza 4x por segundo (a contagem é em segundos; um ciclo dura horas). */
     private fun ticks(pomodoro: Pomodoro): Flow<Long> =
         if (pomodoro.status == PomodoroStatus.Running) clockTicks(clock, TICK_MILLIS) else flowOf(clock.nowMillis())
 
@@ -64,7 +59,6 @@ class PomodoroViewModel(
     }
 }
 
-/** Ajuste de um campo; os limites são aplicados pelo domínio (PomodoroSettings.normalized). */
 internal fun PomodoroSettings.step(field: PomodoroSettingField, delta: Int): PomodoroSettings = when (field) {
     PomodoroSettingField.Focus -> copy(focusMillis = focusMillis + delta * MINUTE)
     PomodoroSettingField.ShortBreak -> copy(shortBreakMillis = shortBreakMillis + delta * MINUTE)

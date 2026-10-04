@@ -4,13 +4,8 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import com.adriano.cronosync.MainActivity
-import com.adriano.cronosync.alarm.AlarmSource
+import com.adriano.cronosync.alarm.data.AlarmSource
 
-/*
- * PendingIntent = "uma intenção que outro processo (o sistema) pode disparar em nome do app depois",
- * por exemplo quando o alarme vence ou quando o usuário toca num botão da notificação.
- * FLAG_IMMUTABLE é obrigatório a partir do Android 12 quando ninguém precisa alterar o Intent.
- */
 private const val FLAGS = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
 
 internal fun openAppPendingIntent(context: Context): PendingIntent {
@@ -21,7 +16,7 @@ internal fun openAppPendingIntent(context: Context): PendingIntent {
 
 internal const val EXTRA_ALARM_SOURCE = "com.adriano.cronosync.alarm.SOURCE"
 
-/** requestCode diferente por fonte: senão o Android trataria os PendingIntents como "o mesmo". */
+// requestCode distinto por fonte/ação: senão o Android trata os PendingIntents como o mesmo.
 private fun AlarmSource.requestCode(base: Int) = base + ordinal * 10
 
 internal fun Intent.alarmSource(): AlarmSource =
@@ -35,7 +30,6 @@ internal fun alarmActivityIntent(context: Context, source: AlarmSource): Intent 
 internal fun alarmActivityPendingIntent(context: Context, source: AlarmSource): PendingIntent =
     PendingIntent.getActivity(context, source.requestCode(1), alarmActivityIntent(context, source), FLAGS)
 
-/** O que o AlarmManager dispara no horário: o AlarmFiredReceiver, dizendo de qual fonte é. */
 internal fun alarmFiredPendingIntent(context: Context, source: AlarmSource): PendingIntent {
     val intent = Intent(context, AlarmFiredReceiver::class.java).putExtra(EXTRA_ALARM_SOURCE, source.name)
     return PendingIntent.getBroadcast(context, source.requestCode(0), intent, FLAGS)
@@ -43,6 +37,5 @@ internal fun alarmFiredPendingIntent(context: Context, source: AlarmSource): Pen
 
 internal fun timerActionPendingIntent(context: Context, action: String): PendingIntent {
     val intent = Intent(context, TimerActionReceiver::class.java).setAction(action)
-    // requestCode diferente por ação: senão o Android considera os dois PendingIntents "o mesmo".
     return PendingIntent.getBroadcast(context, action.hashCode(), intent, FLAGS)
 }

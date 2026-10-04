@@ -2,8 +2,8 @@ package com.adriano.cronosync.pomodoro.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.adriano.cronosync.alarm.AlarmSilenceRepository
-import com.adriano.cronosync.alarm.AlarmSource
+import com.adriano.cronosync.alarm.data.AlarmSilenceRepository
+import com.adriano.cronosync.alarm.data.AlarmSource
 import com.adriano.cronosync.core.Clock
 import com.adriano.cronosync.core.clockTicks
 import com.adriano.cronosync.pomodoro.data.PomodoroRepository
@@ -21,12 +21,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 data class PomodoroAlarmUiState(
-    /** A fase que acabou de começar ("Hora da pausa curta"). */
     val phase: PomodoroPhaseKind,
     val phaseMinutes: Int,
-    /** Quanto falta da fase que começou — o ciclo já está andando. */
     val remainingText: String,
-    /** Nada tocando (silenciado, pausado, zerado…): a tela de alarme deve fechar. */
     val isDismissed: Boolean,
 )
 
@@ -34,10 +31,6 @@ sealed interface PomodoroAlarmAction {
     data object Stop : PomodoroAlarmAction
 }
 
-/**
- * Tela de alarme da troca de fase. Diferente da do timer, "Parar" SÓ silencia: a próxima fase já
- * começou sozinha e o ciclo continua — zerar acabaria com a sessão inteira.
- */
 class PomodoroAlarmViewModel(
     private val repository: PomodoroRepository,
     private val clock: Clock,

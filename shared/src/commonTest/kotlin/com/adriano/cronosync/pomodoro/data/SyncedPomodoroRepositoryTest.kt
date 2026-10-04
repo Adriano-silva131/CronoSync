@@ -4,9 +4,9 @@ import com.adriano.cronosync.core.FakeClock
 import com.adriano.cronosync.pomodoro.domain.Pomodoro
 import com.adriano.cronosync.pomodoro.domain.PomodoroCommand
 import com.adriano.cronosync.pomodoro.domain.PomodoroStatus
-import com.adriano.cronosync.sync.FakeRoomConnection
-import com.adriano.cronosync.sync.RoomCommand
-import com.adriano.cronosync.sync.RoomState
+import com.adriano.cronosync.sync.data.FakeRoomConnection
+import com.adriano.cronosync.sync.domain.RoomCommand
+import com.adriano.cronosync.sync.domain.RoomState
 import com.russhwolf.settings.MapSettings
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -24,7 +24,6 @@ class SyncedPomodoroRepositoryTest {
         clock.currentMillis = 1_000L
         SyncedPomodoroRepository(clock, settings, connection, backgroundScope).send(PomodoroCommand.Start)
 
-        // "App reiniciou": lê o que ficou salvo.
         val reopened = SyncedPomodoroRepository(clock, settings, connection, backgroundScope)
         assertEquals(PomodoroStatus.Running, reopened.pomodoro.value.status)
         assertEquals(1_000L, reopened.pomodoro.value.runningSinceMillis)

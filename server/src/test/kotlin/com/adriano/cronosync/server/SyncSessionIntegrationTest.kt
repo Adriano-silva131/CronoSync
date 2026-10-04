@@ -5,26 +5,18 @@ import com.adriano.cronosync.core.Clock
 import com.adriano.cronosync.stopwatch.data.SyncedStopwatchRepository
 import com.adriano.cronosync.stopwatch.domain.StopwatchCommand
 import com.adriano.cronosync.stopwatch.domain.StopwatchStatus
-import com.adriano.cronosync.sync.ConnectionStatus
-import com.adriano.cronosync.sync.RoomCode
-import com.adriano.cronosync.sync.RoomState
-import com.adriano.cronosync.sync.SyncConfig
-import com.adriano.cronosync.sync.SyncError
-import com.adriano.cronosync.sync.SyncSession
+import com.adriano.cronosync.sync.data.SyncConfig
+import com.adriano.cronosync.sync.data.SyncSession
+import com.adriano.cronosync.sync.domain.ConnectionStatus
+import com.adriano.cronosync.sync.domain.RoomCode
+import com.adriano.cronosync.sync.domain.RoomState
+import com.adriano.cronosync.sync.domain.SyncError
 import com.adriano.cronosync.timer.data.SettingsTimerStorage
 import com.adriano.cronosync.timer.data.SyncedTimerRepository
 import com.adriano.cronosync.timer.domain.TimerCommand
 import com.russhwolf.settings.MapSettings
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.server.testing.testApplication
-import java.util.concurrent.CopyOnWriteArrayList
-import kotlin.random.Random
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -34,11 +26,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
+import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.random.Random
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
-/**
- * Ponta a ponta: servidor real (em memória) + o MESMO código de cliente que o app usa
- * (SyncSession + repositórios sincronizados). Simula dois celulares na mesma sala.
- */
 class SyncSessionIntegrationTest {
 
     private class FakeClock(var currentMillis: Long) : Clock {
@@ -68,19 +64,16 @@ class SyncSessionIntegrationTest {
         try {
             val (sessionA, stopwatchA, timerA) = phone()
             val (sessionB, stopwatchB, timerB) = phone()
-            // Celular A cria a sala; celular B "digita" o código que A mostrou na tela.
             val code = assertNotNull(sessionA.createRoom("localhost"))
             sessionA.join("localhost", code)
             sessionB.join("localhost", assertNotNull(RoomCode.parse(code.formatted)))
             sessionA.status.awaitFirst { it is ConnectionStatus.Connected }
             sessionB.status.awaitFirst { it is ConnectionStatus.Connected }
 
-            // Celular A inicia o cronômetro → celular B vê rodando, com o horário do SERVIDOR.
             stopwatchA.send(StopwatchCommand.Start)
             val onB = stopwatchB.stopwatch.awaitFirst { it.status == StopwatchStatus.Running }
             assertEquals(1_000_000L, onB.runningSinceMillis)
 
-            // Celular B muda a duração do timer → celular A vê.
             timerB.send(TimerCommand.SetDuration(45_000L))
             timerA.timer.awaitFirst { it.durationMillis == 45_000L }
         } finally {
@@ -93,7 +86,6 @@ class SyncSessionIntegrationTest {
         application { module(clock = serverClock) }
         val scope = CoroutineScope(SupervisorJob())
         try {
-            // Celular com o relógio muito atrasado em relação ao servidor.
             val phoneClock = AlignedClock(FakeClock(currentMillis = 400_000L))
             val session = SyncSession(createClient { install(WebSockets) }, phoneClock, MapSettings(), scope, SyncConfig.Configurable)
             session.join("localhost", assertNotNull(session.createRoom("localhost")))
@@ -101,7 +93,6 @@ class SyncSessionIntegrationTest {
 
             withTimeout(5_000) { while (phoneClock.offsetMillis == 0L) kotlinx.coroutines.delay(10) }
 
-            // Relógio falso do celular não anda: ida e volta = 0, diferença exata.
             assertEquals(600_000L, phoneClock.offsetMillis)
             assertEquals(serverClock.currentMillis, phoneClock.nowMillis())
         } finally {
@@ -120,7 +111,6 @@ class SyncSessionIntegrationTest {
             val code = assertNotNull(first.createRoom("localhost"))
             first.join("localhost", code)
 
-            // "App reiniciou": nova sessão com as mesmas configurações salvas.
             val restarted = SyncSession(createClient { install(WebSockets) }, clock, settings, scope, SyncConfig.Configurable)
 
             assertIs<ConnectionStatus.Connected>(restarted.status.awaitFirst { it is ConnectionStatus.Connected })
@@ -144,17 +134,14 @@ class SyncSessionIntegrationTest {
             phone.join("localhost", code)
             computer.status.awaitFirst { it is ConnectionStatus.Connected }
             SyncedStopwatchRepository(clock, computer, scope).send(StopwatchCommand.Start)
-            // O celular recebeu o estado OFICIAL com o cronômetro rodando (e o guardou).
             SyncedStopwatchRepository(clock, phone, scope).stopwatch.awaitFirst { it.status == StopwatchStatus.Running }
 
-            // App do celular reabre sem conseguir falar com o servidor (cliente sem WebSocket).
             val reopened = SyncSession(createClient { }, clock, phoneSettings, scope, SyncConfig.Configurable)
             val stopwatch = SyncedStopwatchRepository(clock, reopened, scope)
 
             val shown = stopwatch.stopwatch.awaitFirst { it.status == StopwatchStatus.Running }
             assertEquals(1_000_000L, shown.runningSinceMillis)
             assertIs<ConnectionStatus.Reconnecting>(reopened.status.awaitFirst { it is ConnectionStatus.Reconnecting })
-            // Só mostra: toques ficam bloqueados até reconectar.
             assertEquals(false, reopened.commandsAvailable.value)
         } finally {
             scope.cancel()
@@ -203,12 +190,10 @@ class SyncSessionIntegrationTest {
             val settings = MapSettings()
             val session = SyncSession(createClient { install(WebSockets) }, AlignedClock(FakeClock(0L)), settings, scope, SyncConfig.Configurable)
 
-            // Ex.: código antigo de antes do servidor reiniciar.
             session.join("localhost", RoomCode.generate(Random(99)))
 
             assertEquals(SyncError.RoomNotFound, session.lastError.awaitFirst { it != null })
             assertEquals(ConnectionStatus.Offline, session.status.value)
-            // Não fica tentando reconectar para sempre, e esquece a sala salva.
             assertEquals(false, session.isInRoom)
             assertNull(settings.getStringOrNull("sync.roomId"))
         } finally {
@@ -220,7 +205,6 @@ class SyncSessionIntegrationTest {
     fun localTestingVersionAlwaysUsesTheLocalServer() = testApplication {
         val scope = CoroutineScope(SupervisorJob())
         try {
-            // Um endereço salvo antes (ex.: de quando o campo era editável) não vale na versão de testes.
             val settings = MapSettings().apply { putString("sync.serverAddress", "192.168.0.99:9000") }
             val session = SyncSession(createClient { install(WebSockets) }, AlignedClock(FakeClock(0L)), settings, scope, SyncConfig.LocalTesting)
 
@@ -235,14 +219,12 @@ class SyncSessionIntegrationTest {
         application { module(clock = serverClock) }
         val scope = CoroutineScope(SupervisorJob())
         try {
-            // Celular 10 min atrasado: se o estado aparecesse antes do ajuste, o tempo "pularia".
             val phoneClock = AlignedClock(FakeClock(currentMillis = 400_000L))
             val session = SyncSession(createClient { install(WebSockets) }, phoneClock, MapSettings(), scope, SyncConfig.Configurable)
             session.join("localhost", assertNotNull(session.createRoom("localhost")))
 
             session.status.awaitFirst { it is ConnectionStatus.Connected }
 
-            // No instante em que vira "conectado" (e o estado é publicado), o relógio já está alinhado.
             assertEquals(600_000L, phoneClock.offsetMillis)
         } finally {
             scope.cancel()
@@ -261,7 +243,6 @@ class SyncSessionIntegrationTest {
             first.status.awaitFirst { it is ConnectionStatus.Connected }
             first.leave()
 
-            // App reaberto: antes mesmo de conectar, já usa a diferença medida da última vez.
             val reopenedClock = AlignedClock(FakeClock(400_000L))
             SyncSession(createClient { install(WebSockets) }, reopenedClock, settings, scope, SyncConfig.Configurable)
                 .join("localhost", code)
@@ -281,11 +262,8 @@ class SyncSessionIntegrationTest {
             session.join("localhost", assertNotNull(session.createRoom("localhost")))
             session.status.awaitFirst { it is ConnectionStatus.Connected }
 
-            // Grava TODAS as transições, em vez de tentar flagrar uma com first {}: com a reconexão
-            // imediata, o "Reconectando" pode durar microssegundos, e um observador atrasado (máquina
-            // ocupada) já encontraria "Conectado" — esperando para sempre por um estado que passou.
-            // Unconfined: o coletor roda na hora de cada mudança, sem esperar a vez numa thread.
-            // CopyOnWriteArrayList: o teste lê a lista enquanto os coletores (outra thread) escrevem.
+            // Grava todas as transições em vez de esperar uma com first {}: o "Reconectando" pode durar
+            // microssegundos, e um observador atrasado esperaria para sempre por um estado que já passou.
             val statuses = CopyOnWriteArrayList<ConnectionStatus>()
             val commandsAvailable = CopyOnWriteArrayList<Boolean>()
             scope.launch(Dispatchers.Unconfined) { session.status.collect { statuses += it } }
@@ -293,7 +271,6 @@ class SyncSessionIntegrationTest {
 
             session.onNetworkChanged()
 
-            // Sem o "tente agora", a próxima tentativa esperaria 1 s; aqui volta bem antes.
             withTimeout(SyncSession.backoffMillis(1) - 200) {
                 while (
                     statuses.none { it is ConnectionStatus.Reconnecting } ||
@@ -301,8 +278,7 @@ class SyncSessionIntegrationTest {
                     commandsAvailable.lastOrNull() != true
                 ) delay(10)
             }
-            // Os botões ficaram desabilitados no meio do caminho e voltaram no fim. (A gravação pode
-            // começar com um "false" da conexão anterior: o status muda um instante antes dos botões.)
+            // dropWhile: a gravação pode começar com um false da conexão anterior.
             assertTrue(false in commandsAvailable.toList().dropWhile { !it }, "botões deveriam desabilitar: $commandsAvailable")
         } finally {
             scope.cancel()
@@ -320,17 +296,14 @@ class SyncSessionIntegrationTest {
             session.join("localhost", assertNotNull(session.createRoom("localhost")))
             session.status.awaitFirst { it is ConnectionStatus.Connected }
             stopwatch.stopwatch.awaitFirst { it.status == StopwatchStatus.Idle }
-            // Grava TODOS os estados publicados, na ordem (Unconfined: sem perder nenhum).
             val published = mutableListOf<RoomState>()
             scope.launch(Dispatchers.Unconfined) { session.roomStates.collect { published += it } }
 
             stopwatch.send(StopwatchCommand.Start)
             session.roomStates.awaitFirst { it.version == 1L }
 
-            // 1º: a previsão — já rodando, ainda sobre a versão oficial 0 (sem esperar o servidor).
             val prediction = published.first { it.stopwatch.status == StopwatchStatus.Running }
             assertEquals(0L, prediction.version)
-            // Depois: o estado oficial (versão 1) confirma, no instante do toque.
             val confirmed = published.last()
             assertEquals(1L, confirmed.version)
             assertEquals(serverClock.currentMillis, confirmed.stopwatch.runningSinceMillis)

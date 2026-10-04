@@ -31,6 +31,7 @@ import com.adriano.cronosync.timer.presentation.DurationFields
 import com.adriano.cronosync.timer.presentation.TimerAction
 import com.adriano.cronosync.timer.presentation.TimerUiState
 import com.adriano.cronosync.timer.presentation.TimerViewModel
+import com.adriano.cronosync.ui.alarm.AlarmOptionsRoute
 import com.adriano.cronosync.ui.resources.Res
 import com.adriano.cronosync.ui.resources.action_pause
 import com.adriano.cronosync.ui.resources.action_reset
@@ -48,7 +49,6 @@ import org.koin.compose.viewmodel.koinViewModel
 
 private val TabularNumbers = TextStyle(fontFeatureSettings = "tnum")
 
-/** Rota padrão (desktop): só liga o ViewModel à tela. O Android tem a sua, com permissões de alarme. */
 @Composable
 fun TimerRoute(
     modifier: Modifier = Modifier,
@@ -59,7 +59,6 @@ fun TimerRoute(
         state = state,
         onAction = viewModel::onAction,
         modifier = modifier,
-        // Sem vibração no desktop: só a opção de som.
         footer = { AlarmOptionsRoute(showVibration = false) },
     )
 }
@@ -69,7 +68,6 @@ fun TimerScreen(
     state: TimerUiState,
     onAction: (TimerAction) -> Unit,
     modifier: Modifier = Modifier,
-    /** Conteúdo extra abaixo dos botões (ex.: as opções de alarme de cada plataforma). */
     footer: @Composable () -> Unit = {},
 ) {
     Column(
@@ -79,7 +77,6 @@ fun TimerScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(Modifier.height(48.dp))
-        // Parado: mostra o seletor de duração. Depois de iniciado: o anel de progresso.
         if (state.status == TimerStatus.Idle) {
             DurationPicker(duration = state.duration, enabled = state.controlsEnabled, onAction = onAction)
         } else {

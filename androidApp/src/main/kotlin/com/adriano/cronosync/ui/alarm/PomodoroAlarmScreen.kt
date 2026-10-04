@@ -28,6 +28,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.adriano.cronosync.R
+import com.adriano.cronosync.alarm.label
 import com.adriano.cronosync.pomodoro.domain.PomodoroPhaseKind
 import com.adriano.cronosync.pomodoro.presentation.PomodoroAlarmAction
 import com.adriano.cronosync.pomodoro.presentation.PomodoroAlarmUiState
@@ -41,19 +42,14 @@ fun PomodoroAlarmRoute(
     viewModel: PomodoroAlarmViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    // Silenciado (aqui, na notificação ou porque pausaram/zeraram em outro aparelho): fecha.
     LaunchedEffect(state.isDismissed) {
         if (state.isDismissed) onDismissed()
     }
-    // Como no timer: voltar não fecha, para o alarme não ficar tocando escondido.
+    // Voltar não fecha: o alarme só para com um Parar explícito, para não tocar escondido.
     BackHandler {}
     PomodoroAlarmScreen(state = state, onAction = viewModel::onAction)
 }
 
-/**
- * Troca de fase: mesmo visual calmo do alarme do timer (fundo FIXO, só o botão "respira"), com a
- * cor da fase que começou. "Parar" só silencia — a fase nova já está correndo.
- */
 @Composable
 fun PomodoroAlarmScreen(
     state: PomodoroAlarmUiState,
@@ -107,13 +103,6 @@ fun PomodoroAlarmScreen(
         }
     }
 }
-
-private val PomodoroPhaseKind.label: Int
-    get() = when (this) {
-        PomodoroPhaseKind.Focus -> R.string.pomodoro_phase_focus
-        PomodoroPhaseKind.ShortBreak -> R.string.pomodoro_phase_short_break
-        PomodoroPhaseKind.LongBreak -> R.string.pomodoro_phase_long_break
-    }
 
 @Preview
 @Composable

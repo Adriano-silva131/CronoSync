@@ -2,25 +2,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Conexão com o servidor de sincronização. -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Perceber troca de rede (Wi-Fi ↔ dados) e reconectar na hora. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Mostrar as notificações do timer (pedida em tempo de execução no Android 13+). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Alarme exato no fim do timer. USE_EXACT_ALARM (13+) é concedida automaticamente a apps de
-         alarme/timer; nas versões 12 e anteriores, SCHEDULE_EXACT_ALARM já vem concedida. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission
         android:name="android.permission.SCHEDULE_EXACT_ALARM"
         android:maxSdkVersion="32" />
-    <!-- Reagendar o alarme depois de reiniciar o aparelho. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <!-- Abrir a tela de alarme por cima da tela de bloqueio. No Android 14+ só apps de alarme e
-         chamadas recebem por padrão; o usuário pode conceder nas configurações. -->
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
-    <!-- Serviço que toca o alarme. "systemExempted" é o tipo reservado a apps de alarme/timer. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
 
@@ -46,7 +37,7 @@
             </intent-filter>
         </activity>
 
-        <!-- singleInstance + taskAffinity vazio: o alarme vive numa task própria, separada do app. -->
+        <!-- singleInstance + taskAffinity vazio: o alarme vive numa task própria; fechar não abre o app por baixo. -->
         <activity
             android:name=".alarm.AlarmActivity"
             android:excludeFromRecents="true"

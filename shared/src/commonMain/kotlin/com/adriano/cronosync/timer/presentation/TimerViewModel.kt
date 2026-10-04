@@ -25,11 +25,9 @@ class TimerViewModel(
     private val clock: Clock,
 ) : ViewModel() {
 
-    /** Mesma estrutura do StopwatchViewModel: estado do repositório + "agora", recalculado a cada tick. */
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<TimerUiState> = repository.timer
         .flatMapLatest { timer -> ticks(timer).map { now -> timer.toUiState(now) } }
-        // Sem conexão numa sala, a tela desabilita os botões (ver controlsEnabled).
         .combine(repository.acceptsCommands) { state, enabled -> state.copy(controlsEnabled = enabled) }
         .stateIn(
             scope = viewModelScope,
@@ -39,7 +37,6 @@ class TimerViewModel(
         )
 
     fun onAction(action: TimerAction) {
-        // Defesa extra além dos botões desabilitados: sem conexão, nenhum comando sai daqui.
         if (!repository.acceptsCommands.value) return
         val command = when (action) {
             is TimerAction.StepDuration -> {
@@ -53,10 +50,6 @@ class TimerViewModel(
         viewModelScope.launch { repository.send(command) }
     }
 
-    /**
-     * Diferença para o cronômetro: o timer tem fim. transformWhile emite o tick e para o Flow logo
-     * depois do primeiro instante em que o timer está Finished — sem gastar bateria com um "00:00" parado.
-     */
     private fun ticks(timer: Timer): Flow<Long> =
         if (timer.status == TimerStatus.Running) {
             clockTicks(clock).transformWhile { now ->

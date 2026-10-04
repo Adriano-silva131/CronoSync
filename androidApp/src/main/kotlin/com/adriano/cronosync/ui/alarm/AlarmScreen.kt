@@ -1,13 +1,6 @@
 package com.adriano.cronosync.ui.alarm
 
-import android.provider.Settings
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,11 +17,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -50,11 +41,10 @@ fun AlarmRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Efeito colateral dirigido pelo estado: quando o timer deixa de estar ativo, a tela se fecha.
     LaunchedEffect(state.isDismissed) {
         if (state.isDismissed) onDismissed()
     }
-    // Voltar não fecha: o alarme só para com um "Parar" explícito, para não ficar tocando escondido.
+    // Voltar não fecha: o alarme só para com um Parar explícito, para não tocar escondido.
     BackHandler {}
 
     AlarmScreen(state = state, onAction = viewModel::onAction)
@@ -66,14 +56,8 @@ fun AlarmScreen(
     onAction: (TimerAlarmAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    /*
-     * Acessibilidade (fotossensibilidade / epilepsia — WCAG 2.3.1):
-     * - o fundo é FIXO: nada de piscar ou alternar cores/brilho, principalmente vermelho saturado,
-     *   que é o gatilho mais perigoso em áreas grandes da tela;
-     * - a atenção vem do som, da vibração e de um movimento lento de "respiração" só no botão,
-     *   que muda o tamanho, mas não a cor nem o brilho;
-     * - com "Remover animações" ativado no Android, nem esse movimento acontece.
-     */
+    // Acessibilidade (epilepsia, WCAG 2.3.1): fundo fixo, nada pisca nem muda de cor/brilho; só o botão
+    // "respira" no tamanho, e nem isso com "Remover animações" ligado.
     val buttonScale = if (rememberReduceMotion()) 1f else breathingScale()
 
     Column(
@@ -112,7 +96,6 @@ fun AlarmScreen(
             ),
             modifier = Modifier
                 .size(160.dp)
-                // graphicsLayer: muda só a escala na hora de desenhar, sem refazer o layout a cada frame.
                 .graphicsLayer {
                     scaleX = buttonScale
                     scaleY = buttonScale
@@ -120,34 +103,6 @@ fun AlarmScreen(
         ) {
             Text(stringResource(R.string.action_stop), style = MaterialTheme.typography.headlineSmall)
         }
-    }
-}
-
-/** Escala que vai de 100% a 106% e volta, num ciclo lento (~2,4 s), com início e fim suaves. */
-@Composable
-internal fun breathingScale(): Float {
-    val transition = rememberInfiniteTransition(label = "alarm-breathing")
-    val scale by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.06f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1_200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "alarm-button-scale",
-    )
-    return scale
-}
-
-/**
- * true quando o usuário ativou "Remover animações" (Acessibilidade), que zera a escala de
- * duração de animações do sistema.
- */
-@Composable
-internal fun rememberReduceMotion(): Boolean {
-    val context = LocalContext.current
-    return remember {
-        Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
     }
 }
 

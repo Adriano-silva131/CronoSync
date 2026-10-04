@@ -1,5 +1,4 @@
 <resources>
-    <!-- Textos das telas compartilhadas (Android e desktop). -->
     <string name="tab_stopwatch">Cronômetro</string>
     <string name="tab_timer">Timer</string>
     <string name="action_start">Iniciar</string>

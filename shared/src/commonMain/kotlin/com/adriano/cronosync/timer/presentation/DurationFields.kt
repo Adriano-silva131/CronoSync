@@ -11,10 +11,6 @@ internal fun Long.toDurationFields(): DurationFields {
 
 internal fun DurationFields.toMillis(): Long = ((hours * 3_600L) + (minutes * 60L) + seconds) * 1_000L
 
-/**
- * Soma [delta] a um campo, "dando a volta" dentro do limite dele (como um relógio):
- * segundos/minutos em 0..59, horas em 0..99. Os outros campos não mudam.
- */
 internal fun DurationFields.step(field: DurationField, delta: Int): DurationFields = when (field) {
     DurationField.Hours -> copy(hours = (hours + delta).wrap(100))
     DurationField.Minutes -> copy(minutes = (minutes + delta).wrap(60))

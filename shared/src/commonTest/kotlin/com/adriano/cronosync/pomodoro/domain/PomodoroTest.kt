@@ -18,7 +18,6 @@ class PomodoroTest {
     fun classicCycleAlternatesFocusAndBreaksWithALongBreakAfterFour() {
         val pomodoro = runningSinceZero()
 
-        // F25 S5 F25 S5 F25 S5 F25 L15 → rodada de 130 min (4×25 + 3×5 + 15), depois recomeça.
         val expected = listOf(
             0L to Focus, 25L to ShortBreak, 30L to Focus, 55L to ShortBreak, 60L to Focus,
             85L to ShortBreak, 90L to Focus, 115L to LongBreak, 129L to LongBreak, 130L to Focus,
@@ -31,9 +30,9 @@ class PomodoroTest {
         val pomodoro = runningSinceZero()
 
         assertEquals(0, pomodoro.phaseAt(min(10)).completedFocuses)
-        assertEquals(1, pomodoro.phaseAt(min(26)).completedFocuses) // na 1ª pausa
-        assertEquals(4, pomodoro.phaseAt(min(120)).completedFocuses) // na pausa longa
-        assertEquals(4, pomodoro.phaseAt(min(140)).completedFocuses) // 5º foco em andamento
+        assertEquals(1, pomodoro.phaseAt(min(26)).completedFocuses)
+        assertEquals(4, pomodoro.phaseAt(min(120)).completedFocuses)
+        assertEquals(4, pomodoro.phaseAt(min(140)).completedFocuses)
     }
 
     @Test
@@ -41,8 +40,8 @@ class PomodoroTest {
         val pomodoro = runningSinceZero(PomodoroSettings(focusMillis = min(50), shortBreakMillis = min(10), longBreakMillis = min(30), focusesBeforeLongBreak = 2))
 
         assertEquals(ShortBreak, pomodoro.phaseAt(min(55)).kind)
-        assertEquals(LongBreak, pomodoro.phaseAt(min(115)).kind) // 50+10+50 = 110 → pausa longa
-        assertEquals(Focus, pomodoro.phaseAt(min(140)).kind) // 110+30 = 140 → nova rodada
+        assertEquals(LongBreak, pomodoro.phaseAt(min(115)).kind)
+        assertEquals(Focus, pomodoro.phaseAt(min(140)).kind)
     }
 
     @Test
@@ -53,7 +52,7 @@ class PomodoroTest {
         assertEquals(min(5), paused.phaseAt(min(500)).endElapsedMillis - paused.elapsedMillis(min(500)))
 
         val resumed = paused.handle(PomodoroCommand.Start, nowMillis = min(100))
-        assertEquals(ShortBreak, resumed.phaseAt(min(106)).kind) // 20 + 6 = 26 min andados
+        assertEquals(ShortBreak, resumed.phaseAt(min(106)).kind)
     }
 
     @Test
@@ -62,7 +61,7 @@ class PomodoroTest {
             .handle(PomodoroCommand.Pause, nowMillis = min(20))
             .handle(PomodoroCommand.Start, nowMillis = min(100))
 
-        assertEquals(min(105), resumed.nextTransitionAtMillis(min(101))) // faltavam 5 min de foco
+        assertEquals(min(105), resumed.nextTransitionAtMillis(min(101)))
         assertNull(resumed.handle(PomodoroCommand.Pause, min(102)).nextTransitionAtMillis(min(102)))
     }
 
@@ -70,9 +69,9 @@ class PomodoroTest {
     fun automaticTransitionIsWhatRingsTheAlarm() {
         val pomodoro = runningSinceZero()
 
-        assertNull(pomodoro.lastTransitionAtMillis(min(10))) // ainda no 1º foco: nada tocou
-        assertEquals(min(25), pomodoro.lastTransitionAtMillis(min(27))) // foco → pausa às 25 min
-        assertEquals(min(30), pomodoro.lastTransitionAtMillis(min(31))) // pausa → foco às 30 min
+        assertNull(pomodoro.lastTransitionAtMillis(min(10)))
+        assertEquals(min(25), pomodoro.lastTransitionAtMillis(min(27)))
+        assertEquals(min(30), pomodoro.lastTransitionAtMillis(min(31)))
     }
 
     @Test
@@ -80,9 +79,9 @@ class PomodoroTest {
         val skipped = runningSinceZero().handle(PomodoroCommand.Skip, nowMillis = min(10))
 
         assertEquals(ShortBreak, skipped.phaseAt(min(10)).kind)
-        assertEquals(min(15), skipped.nextTransitionAtMillis(min(10))) // pausa de 5 min a partir de agora
-        assertNull(skipped.lastTransitionAtMillis(min(11))) // pular foi ação da pessoa: não toca
-        assertEquals(min(15), skipped.lastTransitionAtMillis(min(16))) // a troca seguinte, automática, toca
+        assertEquals(min(15), skipped.nextTransitionAtMillis(min(10)))
+        assertNull(skipped.lastTransitionAtMillis(min(11)))
+        assertEquals(min(15), skipped.lastTransitionAtMillis(min(16)))
     }
 
     @Test

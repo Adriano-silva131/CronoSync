@@ -15,7 +15,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CronoSyncTheme {
-                // Telas compartilhadas com o desktop; timer e Pomodoro usam rotas Android (com permissões de alarme).
                 CronoSyncContent(
                     timer = { AndroidTimerRoute(modifier = it) },
                     pomodoro = { AndroidPomodoroRoute(modifier = it) },

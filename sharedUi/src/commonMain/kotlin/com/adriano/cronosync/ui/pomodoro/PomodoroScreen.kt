@@ -40,6 +40,7 @@ import com.adriano.cronosync.pomodoro.presentation.PomodoroSettingField
 import com.adriano.cronosync.pomodoro.presentation.PomodoroSettingsFields
 import com.adriano.cronosync.pomodoro.presentation.PomodoroUiState
 import com.adriano.cronosync.pomodoro.presentation.PomodoroViewModel
+import com.adriano.cronosync.ui.alarm.AlarmOptionsRoute
 import com.adriano.cronosync.ui.resources.Res
 import com.adriano.cronosync.ui.resources.action_pause
 import com.adriano.cronosync.ui.resources.action_reset
@@ -59,14 +60,12 @@ import com.adriano.cronosync.ui.resources.pomodoro_skip
 import com.adriano.cronosync.ui.resources.timer_decrease
 import com.adriano.cronosync.ui.resources.timer_increase
 import com.adriano.cronosync.ui.sync.OfflineControlsHint
-import com.adriano.cronosync.ui.timer.AlarmOptionsRoute
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 private val TabularNumbers = TextStyle(fontFeatureSettings = "tnum")
 
-/** Rota padrão (desktop). O Android tem a sua, com as permissões de alarme. */
 @Composable
 fun PomodoroRoute(
     modifier: Modifier = Modifier,
@@ -86,7 +85,6 @@ fun PomodoroScreen(
     state: PomodoroUiState,
     onAction: (PomodoroAction) -> Unit,
     modifier: Modifier = Modifier,
-    /** Conteúdo extra no fim (ex.: as opções de alarme de cada plataforma). */
     footer: @Composable () -> Unit = {},
 ) {
     Column(
@@ -96,7 +94,7 @@ fun PomodoroScreen(
             .padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Cor por fase, FIXA (troca uma vez na mudança de fase, nunca pisca).
+        // Cor fixa por fase (acessibilidade): troca uma vez na mudança de fase, nunca pisca.
         val phaseColor = phaseColor(state.phase)
         Text(
             text = stringResource(state.phase.label),
@@ -128,7 +126,6 @@ fun PomodoroScreen(
         Spacer(Modifier.height(24.dp))
         PomodoroControls(state = state, onAction = onAction)
         if (!state.controlsEnabled) OfflineControlsHint(modifier = Modifier.padding(top = 16.dp))
-        // Ajustes só com o Pomodoro parado: mudar durações no meio do ciclo embaralharia as fases.
         if (state.status == PomodoroStatus.Idle) {
             Spacer(Modifier.height(24.dp))
             PomodoroSettingsEditor(settings = state.settings, enabled = state.controlsEnabled, onAction = onAction)
@@ -215,7 +212,6 @@ private fun SettingRow(
             enabled = enabled,
             modifier = Modifier.semantics { contentDescription = decrease },
         ) { Text("−", style = MaterialTheme.typography.titleLarge) }
-        // Largura fixa: "5" e "25" ocupam o mesmo espaço, e os botões −/+ ficam alinhados entre as linhas.
         Text(
             value.toString(),
             style = MaterialTheme.typography.titleMedium.merge(TabularNumbers),

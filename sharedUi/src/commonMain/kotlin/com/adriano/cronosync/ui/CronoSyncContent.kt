@@ -36,25 +36,14 @@ private enum class Mode(val label: StringResource) {
     Pomodoro(Res.string.tab_pomodoro),
 }
 
-/** A partir desta largura cabem os três modos lado a lado (cada coluna com ~400 dp). */
 private val SideBySideMinWidth = 1200.dp
 
-/**
- * Esqueleto do app, igual em todas as plataformas: barra de sala no topo e os modos abaixo.
- *
- * O layout se adapta ao espaço, não à plataforma: numa janela larga (desktop maximizado, tablet
- * deitado) os três modos aparecem lado a lado; num espaço menor (celular, janela estreita), em abas.
- *
- * @param timer/pomodoro permitem que uma plataforma troque a rota desses modos — o Android usa as
- *   suas, que também pedem as permissões de alarme.
- */
 @Composable
 fun CronoSyncContent(
     modifier: Modifier = Modifier,
     timer: @Composable (Modifier) -> Unit = { TimerRoute(modifier = it) },
     pomodoro: @Composable (Modifier) -> Unit = { PomodoroRoute(modifier = it) },
 ) {
-    // A aba escolhida é estado de UI puro: rememberSaveable sobrevive à rotação de tela.
     var selected by rememberSaveable { mutableStateOf(Mode.Stopwatch) }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
@@ -74,7 +63,6 @@ fun CronoSyncContent(
                             }
                         }
                     }
-                    // A sala vale para os dois modos: cronômetro e timer são sincronizados juntos.
                     RoomBarRoute()
                 }
             },

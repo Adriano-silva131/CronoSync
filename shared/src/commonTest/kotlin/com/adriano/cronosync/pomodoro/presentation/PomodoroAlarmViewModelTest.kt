@@ -1,7 +1,7 @@
 package com.adriano.cronosync.pomodoro.presentation
 
-import com.adriano.cronosync.alarm.AlarmSilenceRepository
-import com.adriano.cronosync.alarm.AlarmSource
+import com.adriano.cronosync.alarm.data.AlarmSilenceRepository
+import com.adriano.cronosync.alarm.data.AlarmSource
 import com.adriano.cronosync.core.SchedulerClock
 import com.adriano.cronosync.pomodoro.data.FakePomodoroRepository
 import com.adriano.cronosync.pomodoro.domain.Pomodoro
@@ -43,7 +43,7 @@ class PomodoroAlarmViewModelTest {
     fun stopOnlySilencesAndTheCycleKeepsGoing() = runTest {
         val viewModel = PomodoroAlarmViewModel(repository, clock, silence)
         backgroundScope.launch { viewModel.uiState.collect {} }
-        advanceTimeBy(26 * MINUTE) // foco acabou às 25: tocando, já na pausa curta
+        advanceTimeBy(26 * MINUTE)
         runCurrent()
 
         val ringing = viewModel.uiState.value
@@ -56,6 +56,6 @@ class PomodoroAlarmViewModelTest {
 
         assertTrue(viewModel.uiState.value.isDismissed)
         assertEquals(25 * MINUTE, silence.silencedAtMillis(AlarmSource.Pomodoro).value)
-        assertEquals(emptyList(), repository.sentCommands) // nada enviado: o ciclo continua
+        assertEquals(emptyList(), repository.sentCommands)
     }
 }

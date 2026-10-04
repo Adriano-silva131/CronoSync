@@ -51,9 +51,7 @@ class TimerAlarmTest {
     fun alarmStoppedOnThisDeviceDoesNotRingAgain() {
         val running = tenSeconds.handle(TimerCommand.Start, nowMillis = 0L)
 
-        // Parado aqui (ex.: sem conexão): mesmo com o servidor ainda achando que terminou, não toca.
         assertEquals(AlarmPlan.Cancel, running.alarmPlan(nowMillis = 12_000L, silencedFinishAtMillis = 10_000L))
-        // Um timer NOVO tem outro fim: o silêncio antigo não vale para ele.
         val restarted = tenSeconds.handle(TimerCommand.Start, nowMillis = 20_000L)
         assertEquals(AlarmPlan.Schedule(atMillis = 30_000L), restarted.alarmPlan(nowMillis = 21_000L, silencedFinishAtMillis = 10_000L))
     }

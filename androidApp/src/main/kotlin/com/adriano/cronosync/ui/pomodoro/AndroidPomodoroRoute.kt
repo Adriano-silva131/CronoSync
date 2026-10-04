@@ -10,16 +10,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.adriano.cronosync.pomodoro.domain.PomodoroStatus
 import com.adriano.cronosync.pomodoro.presentation.PomodoroAction
 import com.adriano.cronosync.pomodoro.presentation.PomodoroViewModel
-import com.adriano.cronosync.ui.timer.AlarmOptionsRoute
-import com.adriano.cronosync.ui.timer.AlarmPermissionBanner
-import com.adriano.cronosync.ui.timer.rememberMissingAlarmPermission
-import com.adriano.cronosync.ui.timer.rememberNotificationPermissionRequest
+import com.adriano.cronosync.ui.alarm.AlarmOptionsRoute
+import com.adriano.cronosync.ui.alarm.AlarmPermissionBanner
+import com.adriano.cronosync.ui.alarm.rememberMissingAlarmPermission
+import com.adriano.cronosync.ui.alarm.rememberNotificationPermissionRequest
 import org.koin.compose.viewmodel.koinViewModel
 
-/**
- * Rota do Pomodoro no Android: a tela compartilhada ([PomodoroScreen]) mais o que só existe aqui,
- * igual ao timer — pedir permissão de notificação ao iniciar e avisar se falta permissão de alarme.
- */
 @Composable
 fun AndroidPomodoroRoute(
     modifier: Modifier = Modifier,

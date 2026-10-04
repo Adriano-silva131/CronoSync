@@ -6,24 +6,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.transformLatest
 
-/**
- * A troca de fase que deve estar TOCANDO agora neste aparelho, ou null.
- *
- * Toca a última troca automática (ver [Pomodoro.lastTransitionAtMillis]) enquanto ninguém a
- * silenciar aqui. Pausar, zerar ou pular encerram o toque — o ciclo deixou de "virar sozinho".
- * Se a próxima troca chegar com o alarme ainda tocando, passa a valer a nova.
- */
 fun Pomodoro.ringingTransitionAtMillis(nowMillis: Long, silencedAtMillis: Long?): Long? =
     lastTransitionAtMillis(nowMillis)?.takeIf { it != silencedAtMillis }
 
-/** Uma troca de fase percebida: qual fase começou e quando. */
 data class PomodoroTransition(
     val newPhase: PomodoroPhaseKind,
     val newPhaseMillis: Long,
     val atMillis: Long,
     val lateByMillis: Long,
 ) {
-    /** Percebida bem depois (ex.: computador suspenso): avisar sem som, como no timer. */
     val isLate: Boolean get() = lateByMillis > LATE_THRESHOLD_MILLIS
 
     companion object {
@@ -31,13 +22,8 @@ data class PomodoroTransition(
     }
 }
 
-/**
- * Emite cada troca de fase enquanto o Pomodoro roda — para plataformas sem AlarmManager (desktop,
- * web). Mesma técnica do timerFinishEvents: confere o relógio de parede a cada [pollMillis] (aguenta
- * suspensão) e recomeça se o estado mudar (pausa, pular, outro aparelho mexeu).
- * Se várias fases passaram durante uma suspensão, avisa uma vez só, com a fase atual.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
+// Confere o relógio a cada pollMillis pelo mesmo motivo do timerFinishEvents (suspensão).
 fun pomodoroTransitionEvents(
     pomodoro: Flow<Pomodoro>,
     clock: Clock,

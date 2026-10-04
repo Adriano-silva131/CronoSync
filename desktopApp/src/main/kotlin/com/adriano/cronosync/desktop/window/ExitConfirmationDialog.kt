@@ -18,10 +18,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogWindow
 import androidx.compose.ui.window.rememberDialogState
 
-/**
- * Sem bandeja, o app não pode se esconder (não haveria como recuperá-lo). Se algo está contando,
- * avisamos que fechar desliga os avisos e oferecemos minimizar no lugar — a alternativa clara.
- */
 @Composable
 fun ExitConfirmationDialog(
     onMinimize: () -> Unit,

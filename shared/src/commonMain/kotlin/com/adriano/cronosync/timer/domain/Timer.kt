@@ -3,14 +3,6 @@ package com.adriano.cronosync.timer.domain
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/**
- * Timer (contagem regressiva). Usa a mesma ideia do cronômetro: guarda quanto já correu
- * ([accumulatedMillis] + trecho atual desde [runningSinceMillis]) e calcula o restante a partir de "agora".
- *
- * Detalhe importante: "terminou" NÃO é armazenado. Um timer rodando cujo tempo acabou está
- * terminado por consequência do relógio — veja [statusAt]. Assim nenhum dispositivo precisa avisar
- * os outros que o timer acabou: todos chegam à mesma conclusão sozinhos, no mesmo instante.
- */
 @Serializable
 data class Timer(
     val status: TimerStatus = TimerStatus.Idle,
@@ -25,7 +17,6 @@ data class Timer(
 
     fun remainingMillis(nowMillis: Long): Long = durationMillis - elapsedMillis(nowMillis)
 
-    /** Status "efetivo" num instante: igual a [status], exceto que um timer rodando e zerado está [TimerStatus.Finished]. */
     fun statusAt(nowMillis: Long): TimerStatus =
         if (status == TimerStatus.Running && remainingMillis(nowMillis) == 0L) TimerStatus.Finished else status
 
@@ -35,13 +26,12 @@ data class Timer(
     }
 }
 
-/** [Finished] só aparece via [Timer.statusAt]; o campo [Timer.status] guarda apenas os outros três. */
 @Serializable
+// Finished nunca é gravado em Timer.status: só aparece calculado por Timer.statusAt.
 enum class TimerStatus { Idle, Running, Paused, Finished }
 
 @Serializable
 sealed interface TimerCommand {
-    /** Só vale com o timer parado ([TimerStatus.Idle]); o valor é limitado a 0..[Timer.MAX_DURATION_MILLIS]. */
     @Serializable @SerialName("set_duration")
     data class SetDuration(val durationMillis: Long) : TimerCommand
 
@@ -51,12 +41,10 @@ sealed interface TimerCommand {
     @Serializable @SerialName("pause")
     data object Pause : TimerCommand
 
-    /** Volta ao início mantendo a duração configurada, pronto para rodar de novo. */
     @Serializable @SerialName("reset")
     data object Reset : TimerCommand
 }
 
-/** Função pura, como no cronômetro: comandos que não fazem sentido no estado atual são ignorados. */
 fun Timer.handle(command: TimerCommand, nowMillis: Long): Timer = when (command) {
     is TimerCommand.SetDuration -> when (status) {
         TimerStatus.Idle -> copy(durationMillis = command.durationMillis.coerceIn(0L, Timer.MAX_DURATION_MILLIS))
@@ -75,7 +63,7 @@ fun Timer.handle(command: TimerCommand, nowMillis: Long): Timer = when (command)
             accumulatedMillis = elapsedMillis(nowMillis),
             runningSinceMillis = null,
         )
-        else -> this // inclui Finished: não faz sentido pausar um timer que já acabou
+        else -> this
     }
 
     TimerCommand.Reset -> Timer(durationMillis = durationMillis)

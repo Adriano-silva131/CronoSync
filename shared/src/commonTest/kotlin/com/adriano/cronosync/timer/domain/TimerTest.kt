@@ -69,7 +69,7 @@ class TimerTest {
 
         assertEquals(TimerStatus.Running, running.statusAt(nowMillis = 9_999L))
         assertEquals(TimerStatus.Finished, running.statusAt(nowMillis = 10_000L))
-        assertEquals(0L, running.remainingMillis(nowMillis = 60_000L)) // nunca fica negativo
+        assertEquals(0L, running.remainingMillis(nowMillis = 60_000L))
     }
 
     @Test

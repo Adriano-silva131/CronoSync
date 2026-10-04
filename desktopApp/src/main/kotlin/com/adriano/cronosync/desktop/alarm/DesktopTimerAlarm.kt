@@ -1,9 +1,9 @@
 package com.adriano.cronosync.desktop.alarm
 
+import com.adriano.cronosync.alarm.data.AlarmPreferencesRepository
 import com.adriano.cronosync.core.AlignedClock
-import com.adriano.cronosync.desktop.integration.AlarmPlayer
-import com.adriano.cronosync.desktop.integration.NotificationSender
-import com.adriano.cronosync.timer.data.AlarmPreferencesRepository
+import com.adriano.cronosync.desktop.integration.audio.AlarmPlayer
+import com.adriano.cronosync.desktop.integration.notification.NotificationSender
 import com.adriano.cronosync.timer.data.TimerRepository
 import com.adriano.cronosync.timer.domain.TimerFinished
 import com.adriano.cronosync.timer.domain.timerFinishEvents
@@ -15,15 +15,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-/**
- * Avisa quando o timer acaba no desktop: notificação do sistema + som suave (se ligado).
- *
- * Roda no escopo do APLICATIVO, não da janela. Quem decide "acabou agora" / "acabou enquanto o
- * computador dormia" é o [timerFinishEvents] do shared; aqui só escolhemos como avisar:
- * - no horário: notificação + som;
- * - atrasado (suspensão): só a notificação, dizendo a que horas terminou — som de repente,
- *   minutos depois, só assustaria.
- */
 class DesktopTimerAlarm(
     private val repository: TimerRepository,
     private val clock: AlignedClock,
@@ -48,7 +39,6 @@ class DesktopTimerAlarm(
     }
 
     private companion object {
-        // Textos do sistema (fora das telas Compose); quando o app ganhar outros idiomas, vão para recursos.
         const val TITLE = "Tempo esgotado!"
         const val TITLE_LATE = "O timer terminou"
         val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")

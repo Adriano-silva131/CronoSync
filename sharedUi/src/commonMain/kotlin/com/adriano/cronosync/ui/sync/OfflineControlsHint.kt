@@ -9,10 +9,6 @@ import com.adriano.cronosync.ui.resources.Res
 import com.adriano.cronosync.ui.resources.controls_offline
 import org.jetbrains.compose.resources.stringResource
 
-/**
- * Explica por que os botões estão desabilitados: numa sala sem conexão, um toque não chegaria ao
- * servidor (a fonte da verdade), então preferimos bloquear a fingir que funcionou.
- */
 @Composable
 fun OfflineControlsHint(modifier: Modifier = Modifier) {
     Text(

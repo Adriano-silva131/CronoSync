@@ -2,8 +2,8 @@ package com.adriano.cronosync.timer.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.adriano.cronosync.alarm.AlarmSilenceRepository
-import com.adriano.cronosync.alarm.AlarmSource
+import com.adriano.cronosync.alarm.data.AlarmSilenceRepository
+import com.adriano.cronosync.alarm.data.AlarmSource
 import com.adriano.cronosync.core.Clock
 import com.adriano.cronosync.core.clockTicks
 import com.adriano.cronosync.timer.data.TimerRepository
@@ -21,9 +21,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class TimerAlarmUiState(
-    /** Há quanto tempo o alarme está tocando, ex.: "-00:12". */
     val overtimeText: String,
-    /** O timer foi parado/zerado (aqui ou em outro lugar): a tela de alarme deve fechar. */
     val isDismissed: Boolean,
 )
 
@@ -31,13 +29,6 @@ sealed interface TimerAlarmAction {
     data object Stop : TimerAlarmAction
 }
 
-/**
- * ViewModel da tela de alarme. Fica no shared porque o desktop também terá uma janela de alarme.
- *
- * A tela só existe enquanto o timer está rodando/terminado. "Fechar" não é uma ação da tela: é
- * consequência do estado — se alguém zerar o timer (botão Parar, notificação, outro aparelho),
- * [TimerAlarmUiState.isDismissed] vira true e a tela se fecha sozinha.
- */
 class TimerAlarmViewModel(
     private val repository: TimerRepository,
     private val clock: Clock,
@@ -62,7 +53,6 @@ class TimerAlarmViewModel(
     fun onAction(action: TimerAlarmAction) {
         when (action) {
             TimerAlarmAction.Stop -> {
-                // Silencia AQUI na hora (com ou sem conexão) e avisa o servidor para zerar para todos.
                 repository.timer.value.finishesAtMillis()?.let { silence.silence(AlarmSource.Timer, it) }
                 viewModelScope.launch { repository.send(TimerCommand.Reset) }
             }
@@ -70,7 +60,6 @@ class TimerAlarmViewModel(
     }
 
     companion object {
-        /** A tela mostra só segundos: não precisa de 60 atualizações por segundo. */
         const val TICK_MILLIS = 200L
     }
 }
@@ -79,7 +68,6 @@ private fun Timer.toAlarmUiState(nowMillis: Long, silencedFinishAtMillis: Long?)
     val finishesAt = finishesAtMillis()
     return TimerAlarmUiState(
         overtimeText = formatOvertime(if (finishesAt != null) nowMillis - finishesAt else 0L),
-        // Fecha se o timer parou/zerou OU se este alarme já foi parado aqui (mesmo sem conexão).
         isDismissed = finishesAt == null || finishesAt == silencedFinishAtMillis,
     )
 }

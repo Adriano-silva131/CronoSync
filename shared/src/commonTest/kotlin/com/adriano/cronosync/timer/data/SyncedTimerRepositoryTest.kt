@@ -1,9 +1,9 @@
 package com.adriano.cronosync.timer.data
 
 import com.adriano.cronosync.core.FakeClock
-import com.adriano.cronosync.sync.RoomCommand
-import com.adriano.cronosync.sync.FakeRoomConnection
-import com.adriano.cronosync.sync.RoomState
+import com.adriano.cronosync.sync.data.FakeRoomConnection
+import com.adriano.cronosync.sync.domain.RoomCommand
+import com.adriano.cronosync.sync.domain.RoomState
 import com.adriano.cronosync.timer.domain.Timer
 import com.adriano.cronosync.timer.domain.TimerCommand
 import com.adriano.cronosync.timer.domain.TimerStatus
@@ -16,7 +16,6 @@ import kotlin.test.assertNull
 
 class SyncedTimerRepositoryTest {
 
-    // MapSettings: implementação em memória do Settings, feita para testes.
     private val storage = SettingsTimerStorage(MapSettings())
     private val clock = FakeClock()
     private val connection = FakeRoomConnection()
@@ -32,7 +31,6 @@ class SyncedTimerRepositoryTest {
         storage.save(running)
         assertEquals(running, storage.load())
 
-        // runningSinceMillis volta a null ao pausar — não pode sobrar o valor antigo salvo.
         val paused = running.copy(status = TimerStatus.Paused, runningSinceMillis = null)
         storage.save(paused)
         assertEquals(paused, storage.load())
@@ -45,7 +43,6 @@ class SyncedTimerRepositoryTest {
         first.send(TimerCommand.SetDuration(30_000L))
         first.send(TimerCommand.Start)
 
-        // Simula o processo do app morrendo e renascendo: novo repositório, mesmo armazenamento.
         val second = SyncedTimerRepository(clock, storage, connection, backgroundScope)
 
         assertEquals(TimerStatus.Running, second.timer.value.status)
@@ -73,7 +70,6 @@ class SyncedTimerRepositoryTest {
         runCurrent()
 
         assertEquals(fromServer, repository.timer.value)
-        // Persistido: se o app morrer agora, o alarme continua valendo ao renascer.
         assertEquals(fromServer, storage.load())
     }
 }

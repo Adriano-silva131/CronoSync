@@ -24,19 +24,9 @@ class StopwatchViewModel(
     private val clock: Clock,
 ) : ViewModel() {
 
-    /**
-     * Estado da tela = estado do repositório + "agora".
-     *
-     * flatMapLatest: a cada novo [Stopwatch] vindo do repositório, cancela o ticker anterior e cria outro.
-     * Rodando → emite "agora" a cada tick; parado → emite uma vez só (nada muda com o tempo).
-     *
-     * WhileSubscribed(5_000): o ticker só roda enquanto alguém observa (tela visível). Os 5s evitam
-     * reiniciar tudo numa rotação de tela.
-     */
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<StopwatchUiState> = repository.stopwatch
         .flatMapLatest { stopwatch -> ticks(stopwatch).map { now -> stopwatch.toUiState(now) } }
-        // Sem conexão numa sala, a tela desabilita os botões (ver controlsEnabled).
         .combine(repository.acceptsCommands) { state, enabled -> state.copy(controlsEnabled = enabled) }
         .stateIn(
             scope = viewModelScope,
@@ -46,7 +36,6 @@ class StopwatchViewModel(
         )
 
     fun onAction(action: StopwatchAction) {
-        // Defesa extra além dos botões desabilitados: sem conexão, nenhum comando sai daqui.
         if (!repository.acceptsCommands.value) return
         viewModelScope.launch { repository.send(action.toCommand()) }
     }
@@ -65,7 +54,6 @@ private fun StopwatchAction.toCommand(): StopwatchCommand = when (this) {
 private fun Stopwatch.toUiState(nowMillis: Long) = StopwatchUiState(
     status = status,
     elapsedText = formatElapsed(elapsedMillis(nowMillis)),
-    // Volta mais recente no topo da lista.
     laps = laps.asReversed().map { lap ->
         LapUiModel(
             number = lap.number,

@@ -22,10 +22,9 @@ class PomodoroAlarmTest {
 
     @Test
     fun ringsAfterAnAutomaticTransitionUntilSilencedHere() {
-        assertNull(running.ringingTransitionAtMillis(nowMillis = 10 * MINUTE, silencedAtMillis = null)) // ainda no foco
+        assertNull(running.ringingTransitionAtMillis(nowMillis = 10 * MINUTE, silencedAtMillis = null))
         assertEquals(25 * MINUTE, running.ringingTransitionAtMillis(nowMillis = 26 * MINUTE, silencedAtMillis = null))
-        assertNull(running.ringingTransitionAtMillis(nowMillis = 26 * MINUTE, silencedAtMillis = 25 * MINUTE)) // parado aqui
-        // A troca seguinte (pausa → foco) toca de novo, mesmo com a anterior silenciada.
+        assertNull(running.ringingTransitionAtMillis(nowMillis = 26 * MINUTE, silencedAtMillis = 25 * MINUTE))
         assertEquals(30 * MINUTE, running.ringingTransitionAtMillis(nowMillis = 31 * MINUTE, silencedAtMillis = 25 * MINUTE))
     }
 
@@ -61,7 +60,7 @@ class PomodoroAlarmTest {
         backgroundScope.launch { pomodoroTransitionEvents(MutableStateFlow(running), Clock { wallClock }).toList(events) }
         runCurrent()
 
-        wallClock = 70 * MINUTE // dormiu: passaram foco, pausa, foco, pausa e começou o 3º foco
+        wallClock = 70 * MINUTE
         advanceTimeBy(1_000L)
         runCurrent()
 

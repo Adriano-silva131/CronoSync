@@ -1,6 +1,4 @@
 <resources>
-    <!-- Textos usados só pelo código Android (notificações, permissões, alarme).
-         Os das telas compartilhadas estão em sharedUi/src/commonMain/composeResources. -->
     <string name="app_name">CronoSync</string>
     <string name="action_pause">Pausar</string>
     <string name="action_reset">Zerar</string>

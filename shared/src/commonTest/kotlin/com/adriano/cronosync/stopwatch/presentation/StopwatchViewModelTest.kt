@@ -1,13 +1,13 @@
 package com.adriano.cronosync.stopwatch.presentation
 
 import app.cash.turbine.test
+import com.adriano.cronosync.core.SchedulerClock
+import com.adriano.cronosync.core.UI_TICK_MILLIS
+import com.adriano.cronosync.stopwatch.data.FakeStopwatchRepository
 import com.adriano.cronosync.stopwatch.domain.Lap
 import com.adriano.cronosync.stopwatch.domain.Stopwatch
 import com.adriano.cronosync.stopwatch.domain.StopwatchCommand
 import com.adriano.cronosync.stopwatch.domain.StopwatchStatus
-import com.adriano.cronosync.core.SchedulerClock
-import com.adriano.cronosync.core.UI_TICK_MILLIS
-import com.adriano.cronosync.stopwatch.data.FakeStopwatchRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -25,7 +25,6 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalCoroutinesApi::class)
 class StopwatchViewModelTest {
 
-    // viewModelScope roda em Dispatchers.Main; nos testes trocamos por um dispatcher de tempo virtual.
     private val dispatcher = StandardTestDispatcher()
     private val clock = SchedulerClock(dispatcher.scheduler)
     private val repository = FakeStopwatchRepository()
@@ -65,10 +64,9 @@ class StopwatchViewModelTest {
     fun elapsedTimeTicksWhileRunning() = runTest {
         repository.stopwatch.value = Stopwatch(status = StopwatchStatus.Running, runningSinceMillis = 0L)
         val viewModel = createViewModel()
-        // stateIn(WhileSubscribed) só trabalha com alguém coletando — simulamos a tela aberta.
         backgroundScope.launch { viewModel.uiState.collect {} }
 
-        advanceTimeBy(UI_TICK_MILLIS * 100) // 1.600 ms
+        advanceTimeBy(UI_TICK_MILLIS * 100)
         runCurrent()
 
         assertEquals("00:01.60", viewModel.uiState.value.elapsedText)
@@ -84,7 +82,7 @@ class StopwatchViewModelTest {
             assertEquals("00:05.00", awaitItem().elapsedText)
 
             advanceTimeBy(10_000L)
-            expectNoEvents() // nenhum ticker rodando = nenhum trabalho desnecessário
+            expectNoEvents()
         }
     }
 
@@ -95,7 +93,6 @@ class StopwatchViewModelTest {
         backgroundScope.launch { viewModel.uiState.collect {} }
         advanceTimeBy(1_000L)
 
-        // Outro dispositivo pausou: o estado chega pelo repositório, sem ação nesta tela.
         repository.stopwatch.value = Stopwatch(status = StopwatchStatus.Paused, accumulatedMillis = 1_000L)
         runCurrent()
 
@@ -128,7 +125,7 @@ class StopwatchViewModelTest {
 
     @Test
     fun withoutConnectionControlsAreDisabledAndActionsIgnored() = runTest {
-        repository.acceptsCommands.value = false // numa sala, sem conexão
+        repository.acceptsCommands.value = false
         val viewModel = createViewModel()
         backgroundScope.launch { viewModel.uiState.collect {} }
         runCurrent()
@@ -138,7 +135,6 @@ class StopwatchViewModelTest {
         runCurrent()
         assertEquals(emptyList(), repository.sentCommands)
 
-        // Conexão voltou: botões liberados de novo.
         repository.acceptsCommands.value = true
         runCurrent()
         assertEquals(true, viewModel.uiState.value.controlsEnabled)

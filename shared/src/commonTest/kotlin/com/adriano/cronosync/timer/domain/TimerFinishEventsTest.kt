@@ -41,7 +41,7 @@ class TimerFinishEventsTest {
         assertFalse(events.single().isLate)
 
         advanceTimeBy(60_000L)
-        assertEquals(1, events.size) // não repete
+        assertEquals(1, events.size)
     }
 
     @Test
@@ -58,7 +58,7 @@ class TimerFinishEventsTest {
 
     @Test
     fun timerThatAlreadyFinishedBeforeObservingIsIgnored() = runTest {
-        advanceTimeBy(20_000L) // app abriu 10 s depois de o timer acabar
+        advanceTimeBy(20_000L)
         val timer = MutableStateFlow(running(durationMillis = 10_000L))
         val events = collect(timer, SchedulerClock(testScheduler))
 
@@ -68,15 +68,13 @@ class TimerFinishEventsTest {
 
     @Test
     fun endPassedDuringSuspensionIsReportedAsLate() = runTest {
-        // Relógio de parede independente do tempo das corrotinas: simula o computador dormindo,
-        // em que o relógio anda mas as esperas (delay) ficam congeladas.
         var wallClock = 0L
         val clock = Clock { wallClock }
         val timer = MutableStateFlow(running(durationMillis = 60_000L))
         val events = collect(timer, clock)
 
-        wallClock = 10 * 60_000L // acordou 10 min depois
-        advanceTimeBy(1_000L) // em até 1 s (uma checagem) o fim é percebido
+        wallClock = 10 * 60_000L
+        advanceTimeBy(1_000L)
         runCurrent()
 
         val event = events.single()
