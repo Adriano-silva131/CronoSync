@@ -74,12 +74,16 @@ jobs:
             -Pcronosync.environment="$CRONOSYNC_ENVIRONMENT" \
             -Pcronosync.version="${GITHUB_REF_NAME#v}"
 
+      # Uma pasta só: com dois caminhos, o artifact guardaria as subpastas deb/ e rpm/.
+      - name: Juntar os pacotes
+        run: |
+          mkdir linux
+          cp desktopApp/build/compose/binaries/main/deb/*.deb desktopApp/build/compose/binaries/main/rpm/*.rpm linux/
+
       - uses: actions/upload-artifact@v7
         with:
           name: linux
-          path: |
-            desktopApp/build/compose/binaries/main/deb/*.deb
-            desktopApp/build/compose/binaries/main/rpm/*.rpm
+          path: linux/*
           if-no-files-found: error
           retention-days: 1
 
