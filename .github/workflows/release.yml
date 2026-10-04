@@ -1,0 +1,113 @@
+name: Release
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+permissions:
+  contents: read
+
+env:
+  CRONOSYNC_ENVIRONMENT: homologacao
+
+jobs:
+  test:
+    name: Testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Testes
+        run: ./gradlew :shared:jvmTest :server:test :desktopApp:test
+
+  windows-msi:
+    name: Instalador Windows (.msi)
+    needs: test
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Gerar o .msi
+        shell: bash
+        run: |
+          ./gradlew :desktopApp:packageMsi \
+            -Pcronosync.environment="$CRONOSYNC_ENVIRONMENT" \
+            -Pcronosync.version="${GITHUB_REF_NAME#v}"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: msi
+          path: desktopApp/build/compose/binaries/main/msi/*.msi
+          if-no-files-found: error
+          retention-days: 1
+
+  linux-packages:
+    name: Instaladores Linux (.deb e .rpm)
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Instalar o rpmbuild
+        run: sudo apt-get update && sudo apt-get install -y rpm
+
+      - name: Gerar o .deb e o .rpm
+        run: |
+          ./gradlew :desktopApp:packageDeb :desktopApp:packageRpm \
+            -Pcronosync.environment="$CRONOSYNC_ENVIRONMENT" \
+            -Pcronosync.version="${GITHUB_REF_NAME#v}"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux
+          path: |
+            desktopApp/build/compose/binaries/main/deb/*.deb
+            desktopApp/build/compose/binaries/main/rpm/*.rpm
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publicar a Release
+    needs: [windows-msi, linux-packages]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Gerar o SHA256SUMS
+        working-directory: dist
+        run: sha256sum *.msi *.deb *.rpm > SHA256SUMS && cat SHA256SUMS
+
+      - name: Criar a Release com os instaladores
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prerelease=""
+          if [ "$CRONOSYNC_ENVIRONMENT" != "production" ]; then prerelease="--prerelease"; fi
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --generate-notes \
+            $prerelease

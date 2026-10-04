@@ -68,6 +68,16 @@ detectado no build). Em modo de desenvolvimento há uma página de teste em `htt
 
 Os testes com PostgreSQL usam Testcontainers e precisam do Docker rodando.
 
+## Download
+
+Os instaladores do Windows (`.msi`) e do Linux (`.deb`, `.rpm`) ficam na página de [Releases](https://github.com/Adriano-silva131/CronoSync/releases).
+Para publicar uma versão nova, envie uma tag de versão; o workflow `Release` testa, gera os instaladores e
+cria a Release:
+
+```bash
+git tag v1.0.3 && git push origin v1.0.3
+```
+
 ## Gerando os apps
 
 | Alvo | Comando |

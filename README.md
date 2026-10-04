@@ -67,6 +67,16 @@ at build time). A browser test page is available at `http://localhost:8080/dev/`
 
 The PostgreSQL tests use Testcontainers and need Docker running.
 
+## Download
+
+Windows (`.msi`) and Linux (`.deb`, `.rpm`) installers are published on the [Releases](https://github.com/Adriano-silva131/CronoSync/releases)
+page. To publish a new version, push a version tag; the `Release` workflow tests, builds the installers
+and creates the release:
+
+```bash
+git tag v1.0.3 && git push origin v1.0.3
+```
+
 ## Building
 
 | Target | Command |

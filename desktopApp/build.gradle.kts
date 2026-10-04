@@ -58,6 +58,12 @@ val isStaging = cronosyncEnvironment == "homologacao"
 val appPackageName = if (isStaging) "CronoSync-Homolog" else "CronoSync"
 val linuxPackageName = if (isStaging) "cronosync-homologacao" else "cronosync"
 
+/*
+ * Versão dos instaladores. No CI de release vem da tag (v1.0.3 → -Pcronosync.version=1.0.3); sem a
+ * propriedade, vale o padrão abaixo. O .msi exige o formato MAIOR.MENOR.BUILD, só com números.
+ */
+val appVersion: String = providers.gradleProperty("cronosync.version").getOrElse("1.0.2")
+
 compose.desktop {
     application {
         mainClass = "com.adriano.cronosync.desktop.app.MainKt"
@@ -80,13 +86,13 @@ compose.desktop {
         /*
          * Instaladores com o Java embutido (jpackage): quem instala não precisa ter Java.
          * O jpackage só gera o formato do sistema em que roda: .deb/.rpm no Linux, .msi/.exe no
-         * Windows (este último via CI, quando o repositório existir).
+         * Windows (este último via CI: ver .github/workflows/release.yml).
          *   ./gradlew :desktopApp:packageDeb   → desktopApp/build/compose/binaries/main/deb/
          */
         nativeDistributions {
             targetFormats(TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.Msi, TargetFormat.Exe)
             packageName = appPackageName
-            packageVersion = "1.0.2"
+            packageVersion = appVersion
             description = "Cronômetro, timer e Pomodoro sincronizados entre aparelhos"
             vendor = "Adriano"
             // Módulos do Java incluídos no pacote (o mínimo que o app usa, para o instalador ficar menor).
